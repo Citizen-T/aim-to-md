@@ -1,4 +1,3 @@
-import re
 from datetime import datetime
 from typing import List, Optional
 from src.aim_parser import Message
@@ -10,7 +9,7 @@ class MarkdownConverter:
         self.escape_chars = ['*', '_', '`', '[', ']', '(', ')', '#', '+', '-', '.', '!']
     
     def convert(self, messages: List[Message], conversation_date: Optional[datetime] = None, 
-                group_consecutive: bool = False) -> str:
+                group_consecutive: bool = True) -> str:
         if not messages:
             return ""
         
