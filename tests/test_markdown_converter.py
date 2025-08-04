@@ -45,7 +45,8 @@ class TestMarkdownConverter(unittest.TestCase):
         expected = """**UserA** (10:56:59 PM):
 > hello
 
-*[System: UserA signed off at 12:28:30 AM]*
+> [!NOTE]
+> UserA signed off at 12:28:30 AM
 """
         self.assertEqual(markdown, expected)
     

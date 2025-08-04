@@ -68,24 +68,29 @@ python aim2md.py "path/to/aim-logs/" -r
 
 Input HTML:
 ```html
-<B><FONT COLOR="#0000ff">Prince Telvecho<!-- (10:57:26 PM)--></B></FONT>: <FONT>Hey</FONT><BR>
-<B><FONT COLOR="#0000ff">Prince Telvecho<!-- (10:57:28 PM)--></B></FONT>: <FONT>How's it going?</FONT><BR>
-<B><FONT COLOR="#0000ff">Prince Telvecho<!-- (11:00:22 PM)--></B></FONT>: <FONT>Guess you fell asleep</FONT><BR>
+<B><FONT COLOR="#0000ff">Alice<!-- (10:57:26 PM)--></B></FONT>: <FONT>Hey</FONT><BR>
+<B><FONT COLOR="#0000ff">Alice<!-- (10:57:28 PM)--></B></FONT>: <FONT>How's it going?</FONT><BR>
+<B><FONT COLOR="#0000ff">Alice<!-- (11:00:22 PM)--></B></FONT>: <FONT>Guess you fell asleep</FONT><BR>
+<!-- System message -->
+Alice signed off at 11:15:30 PM
 ```
 
 Output Markdown:
 ```markdown
 # AIM Conversation - May 18, 2004
 
-**Prince Telvecho** (10:57:26 PM):
+**Alice** (10:57:26 PM):
 > Hey
 > How's it going?
 
-**Prince Telvecho** (11:00:22 PM):
+**Alice** (11:00:22 PM):
 > Guess you fell asleep
+
+> [!NOTE]
+> Alice signed off at 11:15:30 PM
 ```
 
-The converter intelligently groups messages from the same sender when they occur within 2 minutes of each other, showing only the first timestamp. Messages separated by longer gaps start new groups.
+The converter intelligently groups messages from the same sender when they occur within 2 minutes of each other, showing only the first timestamp. Messages separated by longer gaps start new groups. System messages (like sign-offs) are displayed as callout blocks to distinguish them from regular messages.
 
 ## Running Tests
 

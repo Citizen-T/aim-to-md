@@ -52,7 +52,7 @@ class MarkdownConverter:
             if message.is_system_message:
                 # Flush any pending group before system message
                 flush_group()
-                output.append(f"*[System: {message.content}]*")
+                output.append(f"> [!NOTE]\n> {message.content}")
                 output.append("")
                 previous_sender = None
                 previous_timestamp = None
