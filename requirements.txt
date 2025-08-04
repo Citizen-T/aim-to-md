@@ -1,2 +1,5 @@
+# Runtime dependencies
+google-generativeai>=0.3.0
+
 # Development dependencies
 pytest>=8.0.0
