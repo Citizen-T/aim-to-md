@@ -38,8 +38,9 @@ class TestIntegration(unittest.TestCase):
         self.assertIn("> hey there\\!", markdown)  # Exclamation mark gets escaped
         self.assertIn("> oh hi Alice", markdown)
         
-        # Check that the last message is the sign off
-        self.assertIn("*[System: Alice signed off at 7:39:25 PM]*", markdown)
+        # Check that the last message is the sign off in callout format
+        self.assertIn("> [!NOTE]", markdown)
+        self.assertIn("> Alice signed off at 7:39:25 PM", markdown)
     
     def test_messages_have_expected_content(self):
         with open(self.sample_file, 'r', encoding='utf-8') as f:
