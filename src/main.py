@@ -6,6 +6,7 @@ from typing import List
 
 from src.aim_parser import AIMParser
 from src.markdown_converter import MarkdownConverter
+from src.filename_generator import FilenameGenerator
 
 
 def process_file(input_path: Path, output_path: Path) -> None:
@@ -43,6 +44,29 @@ def process_file(input_path: Path, output_path: Path) -> None:
     except Exception as e:
         print(f"Error processing {input_path}: {e}", file=sys.stderr)
         raise
+
+
+def _generate_standardized_filename(input_file: Path) -> Path:
+    """Generate a standardized filename using LLM for title generation"""
+    parser = AIMParser()
+    filename_generator = FilenameGenerator()
+    
+    # Read and parse the file to extract messages and date
+    with open(input_file, 'r', encoding='utf-8') as f:
+        html_content = f.read()
+    
+    messages = parser.parse(html_content)
+    
+    # Extract date from filename
+    try:
+        date = parser.extract_date_from_filename(input_file.name)
+    except ValueError:
+        date = None
+    
+    # Generate standardized filename using LLM
+    standardized_name = filename_generator.generate_filename(messages, date)
+    
+    return input_file.parent / f"{standardized_name}.md"
 
 
 def main():
@@ -105,8 +129,8 @@ def main():
                 # Single file
                 output_file = output_path
         else:
-            # Default: same location with .md extension
-            output_file = input_file.with_suffix('.md')
+            # Generate standardized filename using LLM
+            output_file = _generate_standardized_filename(input_file)
         
         try:
             process_file(input_file, output_file)

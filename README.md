@@ -12,6 +12,8 @@ A Python utility to convert old AOL Instant Messenger (AIM) conversation logs fr
 - Supports batch processing of multiple files
 - Intelligently groups consecutive messages from the same sender (within 2-minute intervals)
 - Extracts conversation dates from filenames
+- **AI-powered intelligent filename generation** using Google's Gemini AI
+- Generates descriptive filenames in standardized format: `YYYY-MM-DD Title [participants]`
 
 ## Installation
 
@@ -29,8 +31,26 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 3. Install dependencies:
 ```bash
-pip install pytest  # Only needed for running tests
+pip install -r requirements.txt
 ```
+
+## Setup
+
+### Google AI API Key
+
+This tool uses Google's Gemini AI to generate intelligent conversation titles. You'll need to:
+
+1. Get a Google AI API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Copy the `.env-template` file to `.env`:
+   ```bash
+   cp .env-template .env
+   ```
+3. Edit the `.env` file and replace `your-api-key-here` with your actual API key:
+   ```
+   GEMINI_API_KEY=your-actual-api-key-here
+   ```
+
+**Note**: The API key is required when no output filename is specified (using the `-o` option). The tool will generate intelligent filenames using AI when this key is provided.
 
 ## Usage
 
@@ -42,7 +62,15 @@ Convert a single AIM HTML file to Markdown:
 python aim2md.py "path/to/conversation.htm"
 ```
 
-This creates a Markdown file with the same name in the same directory.
+When no output filename is specified, the tool automatically generates an intelligent filename using AI in the format:
+```
+YYYY-MM-DD Title [user1, user2].md
+```
+
+Examples:
+- `2025-08-04 Planning first trip to beach [Alice, Bob].md`
+- `2021-02-20 Birthday wishes for Alice [Alice, Bob].md`
+- `2020-09-22 Catching up during COVID lockdown [Alice, Bob].md`
 
 ### Specify Output Location
 

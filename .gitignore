@@ -3,3 +3,8 @@
 .idea/
 workspace.xml
 *.iml
+
+# Environment variables
+.env
+.env.local
+.env.*.local
