@@ -2,22 +2,27 @@ import os
 import re
 from datetime import datetime
 from typing import List, Set
+from pathlib import Path
 import google.generativeai as genai
+from dotenv import load_dotenv
 from src.aim_parser import Message
 
 
 class FilenameGenerator:
     def __init__(self):
+        # Load environment variables from .env file
+        load_dotenv()
+        
         # Configure Gemini API
         api_key = os.getenv('GEMINI_API_KEY')
         if not api_key:
             raise ValueError(
                 "GEMINI_API_KEY environment variable is required. "
-                "Please set it with your Google AI API key."
+                "Please set it in your .env file or environment variables."
             )
         
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
     
     def generate_filename(self, messages: List[Message], conversation_date: datetime = None) -> str:
         """Generate a standardized filename in format: YYYY-MM-DD Title [user1, user2]"""

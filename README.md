@@ -41,16 +41,14 @@ pip install -r requirements.txt
 This tool uses Google's Gemini AI to generate intelligent conversation titles. You'll need to:
 
 1. Get a Google AI API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Set it as an environment variable:
-
-```bash
-export GEMINI_API_KEY="your-api-key-here"
-```
-
-Or on Windows:
-```cmd
-set GEMINI_API_KEY=your-api-key-here
-```
+2. Copy the `.env-template` file to `.env`:
+   ```bash
+   cp .env-template .env
+   ```
+3. Edit the `.env` file and replace `your-api-key-here` with your actual API key:
+   ```
+   GEMINI_API_KEY=your-actual-api-key-here
+   ```
 
 **Note**: The API key is required when no output filename is specified (using the `-o` option). The tool will generate intelligent filenames using AI when this key is provided.
 

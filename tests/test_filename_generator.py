@@ -31,7 +31,7 @@ class TestFilenameGenerator(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(ValueError) as cm:
                 FilenameGenerator()
-            self.assertIn("GEMINI_API_KEY environment variable is required", str(cm.exception))
+            self.assertIn("Please set it in your .env file or environment variables", str(cm.exception))
     
     def test_extract_participants(self):
         """Test participant extraction from messages"""
