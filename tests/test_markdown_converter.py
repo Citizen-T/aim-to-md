@@ -95,7 +95,7 @@ class TestMarkdownConverter(unittest.TestCase):
             Message(sender="UserA", timestamp="10:57:15 PM", content="are you still there?")
         ]
         
-        markdown = self.converter.convert(messages, group_consecutive=True)
+        markdown = self.converter.convert(messages)
         
         expected = """**UserA** (10:56:59 PM):
 > hello

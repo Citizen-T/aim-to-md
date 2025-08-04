@@ -10,7 +10,7 @@ A Python utility to convert old AOL Instant Messenger (AIM) conversation logs fr
 - Handles system messages (e.g., "user signed off")
 - Escapes special Markdown characters to prevent formatting issues
 - Supports batch processing of multiple files
-- Optional grouping of consecutive messages from the same sender
+- Groups consecutive messages from the same sender
 - Extracts conversation dates from filenames
 
 ## Installation
@@ -64,19 +64,12 @@ Process directories recursively:
 python aim2md.py "path/to/aim-logs/" -r
 ```
 
-### Group Consecutive Messages
-
-Group consecutive messages from the same sender (shows sender name only once):
-
-```bash
-python aim2md.py "conversation.htm" -g
-```
-
 ## Example Output
 
 Input HTML:
 ```html
 <B><FONT COLOR="#0000ff">Alice<!-- (10:56:59 PM)--></B></FONT>: <FONT>Hello!</FONT><BR>
+<B><FONT COLOR="#0000ff">Alice<!-- (10:57:01 PM)--></B></FONT>: <FONT>How are you?</FONT><BR>
 <B><FONT COLOR="#ff0000">Bob<!-- (10:57:05 PM)--></B>:</FONT> <FONT>Hi there!</FONT><BR>
 ```
 
@@ -86,6 +79,9 @@ Output Markdown:
 
 **Alice** (10:56:59 PM):
 > Hello!
+
+(10:57:01 PM):
+> How are you?
 
 **Bob** (10:57:05 PM):
 > Hi there!

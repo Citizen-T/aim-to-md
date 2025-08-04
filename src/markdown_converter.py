@@ -9,7 +9,7 @@ class MarkdownConverter:
         self.escape_chars = ['*', '_', '`', '[', ']', '(', ')', '#', '+', '-', '.', '!']
     
     def convert(self, messages: List[Message], conversation_date: Optional[datetime] = None, 
-                group_consecutive: bool = False) -> str:
+                group_consecutive: bool = True) -> str:
         if not messages:
             return ""
         

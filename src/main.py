@@ -8,7 +8,7 @@ from src.aim_parser import AIMParser
 from src.markdown_converter import MarkdownConverter
 
 
-def process_file(input_path: Path, output_path: Path, group_consecutive: bool = False) -> None:
+def process_file(input_path: Path, output_path: Path) -> None:
     """Process a single AIM HTML file and convert it to Markdown."""
     parser = AIMParser()
     converter = MarkdownConverter()
@@ -31,7 +31,7 @@ def process_file(input_path: Path, output_path: Path, group_consecutive: bool = 
             date = None
         
         # Convert to Markdown
-        markdown = converter.convert(messages, conversation_date=date, group_consecutive=group_consecutive)
+        markdown = converter.convert(messages, conversation_date=date, group_consecutive=True)
         
         # Write the output
         with open(output_path, 'w', encoding='utf-8') as f:
@@ -58,12 +58,6 @@ def main():
     parser.add_argument(
         "-o", "--output",
         help="Output file or directory for Markdown files (default: same location with .md extension)"
-    )
-    
-    parser.add_argument(
-        "-g", "--group-consecutive",
-        action="store_true",
-        help="Group consecutive messages from the same sender"
     )
     
     parser.add_argument(
@@ -115,7 +109,7 @@ def main():
             output_file = input_file.with_suffix('.md')
         
         try:
-            process_file(input_file, output_file, args.group_consecutive)
+            process_file(input_file, output_file)
         except Exception:
             # Error already printed in process_file
             continue
