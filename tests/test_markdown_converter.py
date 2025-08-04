@@ -88,11 +88,28 @@ class TestMarkdownConverter(unittest.TestCase):
 """
         self.assertEqual(markdown, expected)
     
-    def test_consecutive_messages_same_sender(self):
+    def test_consecutive_messages_same_sender_within_threshold(self):
+        # Messages within 2 minutes should be grouped together
         messages = [
             Message(sender="UserA", timestamp="10:56:59 PM", content="hello"),
-            Message(sender="UserA", timestamp="10:57:10 PM", content="how are you doing?"),
-            Message(sender="UserA", timestamp="10:57:15 PM", content="are you still there?")
+            Message(sender="UserA", timestamp="10:57:30 PM", content="how are you doing?"),
+            Message(sender="UserA", timestamp="10:58:15 PM", content="are you still there?")
+        ]
+        
+        markdown = self.converter.convert(messages)
+        
+        expected = """**UserA** (10:56:59 PM):
+> hello
+> how are you doing?
+> are you still there?
+"""
+        self.assertEqual(markdown, expected)
+    
+    def test_consecutive_messages_same_sender_beyond_threshold(self):
+        # Messages more than 2 minutes apart should start new groups
+        messages = [
+            Message(sender="UserA", timestamp="10:56:59 PM", content="hello"),
+            Message(sender="UserA", timestamp="10:59:30 PM", content="guess you fell asleep")
         ]
         
         markdown = self.converter.convert(messages)
@@ -100,11 +117,31 @@ class TestMarkdownConverter(unittest.TestCase):
         expected = """**UserA** (10:56:59 PM):
 > hello
 
-(10:57:10 PM):
-> how are you doing?
+**UserA** (10:59:30 PM):
+> guess you fell asleep
+"""
+        self.assertEqual(markdown, expected)
+    
+    def test_mixed_grouping_scenario(self):
+        # Test complex scenario with different senders and time gaps
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hey"),
+            Message(sender="Alice", timestamp="10:57:01 PM", content="How's it going?"),
+            Message(sender="Bob", timestamp="10:57:05 PM", content="Hi there!"),
+            Message(sender="Alice", timestamp="11:00:22 PM", content="Guess you fell asleep")
+        ]
+        
+        markdown = self.converter.convert(messages)
+        
+        expected = """**Alice** (10:56:59 PM):
+> Hey
+> How's it going?
 
-(10:57:15 PM):
-> are you still there?
+**Bob** (10:57:05 PM):
+> Hi there\\!
+
+**Alice** (11:00:22 PM):
+> Guess you fell asleep
 """
         self.assertEqual(markdown, expected)
 
