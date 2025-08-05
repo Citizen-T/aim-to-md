@@ -60,6 +60,9 @@ class MarkdownConverter:
                     for line in content_lines:
                         escaped_line = self._escape_markdown(line)
                         output.append(f"> {escaped_line}")
+                elif message.is_session_concluded:
+                    # Format session concluded as ATTENTION callout
+                    output.append(f"> [!ATTENTION]\n> {message.content}")
                 else:
                     # Regular system message as NOTE callout
                     output.append(f"> [!NOTE]\n> {message.content}")

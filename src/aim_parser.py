@@ -13,6 +13,7 @@ class Message:
     content: str
     is_system_message: bool = False
     is_auto_response: bool = False
+    is_session_concluded: bool = False
 
 
 class BaseAIMParser(ABC):
@@ -173,19 +174,78 @@ class SpanBasedParser(BaseAIMParser):
         """Parse SPAN-based AIM format"""
         messages = []
         
-        # Each message is wrapped in a SPAN with background-color
-        # Split by these SPAN tags and process each one
-        parts = html_content.split('<SPAN STYLE="background-color: #ffffff;">')
+        # Process the HTML sequentially to maintain chronological order
+        # Look for both SPAN messages and session concluded messages in order
+        self._parse_sequential(html_content, messages)
         
-        for i, part in enumerate(parts[1:]):  # Skip the first empty part
-            # Find the end of this SPAN message
-            span_end = self._find_span_end(part)
-            if span_end == -1:
-                continue
-                
-            message_content = part[:span_end]
-            self._process_span_message(message_content, messages)
         return messages
+    
+    def _parse_sequential(self, html_content: str, messages: List[Message]):
+        """Parse HTML content sequentially to maintain chronological order"""
+        import re
+        
+        # Find all SPAN message blocks and session concluded messages with their positions
+        content_items = []
+        
+        # Find all SPAN message blocks with proper nesting handling
+        span_start_pattern = r'<SPAN STYLE="background-color: #ffffff;">'
+        span_start_positions = []
+        for match in re.finditer(span_start_pattern, html_content):
+            span_start_positions.append(match.start())
+        
+        for start_pos in span_start_positions:
+            # Find the matching end SPAN tag, accounting for nesting
+            span_start_pos = start_pos + len('<SPAN STYLE="background-color: #ffffff;">')
+            span_end_pos = self._find_matching_span_end(html_content, span_start_pos)
+            if span_end_pos != -1:
+                span_content = html_content[span_start_pos:span_end_pos]
+                content_items.append((start_pos, 'span', span_content))
+        
+        # Find all session concluded messages
+        session_pattern = r'<HR><B>Session concluded at ([^<]+)</B><HR>'
+        for match in re.finditer(session_pattern, html_content):
+            start_pos = match.start()
+            timestamp = match.group(1).strip()
+            content_items.append((start_pos, 'session_concluded', timestamp))
+        
+        # Sort by position to maintain chronological order
+        content_items.sort(key=lambda x: x[0])
+        
+        # Process each item in order
+        for pos, item_type, content in content_items:
+            if item_type == 'span':
+                # Debug: print what we're processing
+                # print(f"Processing SPAN at pos {pos}: {content[:50]}...")
+                self._process_span_message(content, messages)
+            elif item_type == 'session_concluded':
+                messages.append(Message(
+                    sender="System",
+                    timestamp="",
+                    content=f"Session concluded at {content}",
+                    is_system_message=True,
+                    is_session_concluded=True
+                ))
+    
+    def _find_matching_span_end(self, html_content: str, start_pos: int) -> int:
+        """Find the matching end SPAN tag starting from start_pos"""
+        span_count = 1
+        i = start_pos
+        
+        while i < len(html_content) and span_count > 0:
+            if html_content[i:i+5] == '<SPAN':
+                span_count += 1
+                # Skip to end of tag
+                tag_end = html_content.find('>', i)
+                i = tag_end + 1 if tag_end != -1 else i + 1
+            elif html_content[i:i+7] == '</SPAN>':
+                span_count -= 1
+                if span_count == 0:
+                    return i
+                i += 7
+            else:
+                i += 1
+        
+        return -1 if span_count > 0 else i
     
     def _find_span_end(self, content: str) -> int:
         """Find the end of a SPAN message, handling nested SPANs"""
@@ -273,6 +333,7 @@ class SpanBasedParser(BaseAIMParser):
                 return content.strip()
         
         return ""
+    
 
 
 class AIMParserFactory:

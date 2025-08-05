@@ -217,6 +217,80 @@ Back in 1 hour</FONT><BR>'''
         self.assertEqual(messages[0].content, "Out for lunch Back in 1 hour")
         self.assertTrue(messages[0].is_system_message)
         self.assertTrue(messages[0].is_auto_response)
+    
+    def test_parse_session_concluded_message(self):
+        """Test parsing of session concluded messages in SPAN format"""
+        html_content = '''<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Bob<SPAN STYLE="font-size: xx-small;"> (9:51:32 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>bye love</FONT></SPAN><BR></BODY><HR><B>Session concluded at 9:52:55 PM</B><HR></HTML>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 2)
+        
+        # First message - regular
+        self.assertEqual(messages[0].sender, "Bob")
+        self.assertEqual(messages[0].content, "bye love")
+        self.assertFalse(messages[0].is_system_message)
+        
+        # Second message - session concluded
+        self.assertEqual(messages[1].sender, "System")
+        self.assertEqual(messages[1].content, "Session concluded at 9:52:55 PM")
+        self.assertTrue(messages[1].is_system_message)
+        self.assertTrue(messages[1].is_session_concluded)
+    
+    def test_parse_multiple_session_concluded_messages(self):
+        """Test parsing when there are multiple session concluded messages (should capture all)"""
+        html_content = '''<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Alice<SPAN STYLE="font-size: xx-small;"> (10:00:00 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>hello</FONT></SPAN><BR><HR><B>Session concluded at 10:30:00 PM</B><HR><HR><B>Session concluded at 11:45:00 PM</B><HR></HTML>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 3)  # 1 regular + 2 session concluded
+        # First message - regular
+        self.assertEqual(messages[0].content, "hello")
+        self.assertFalse(messages[0].is_session_concluded)
+        
+        # Second message - first session concluded
+        self.assertEqual(messages[1].content, "Session concluded at 10:30:00 PM")
+        self.assertTrue(messages[1].is_session_concluded)
+        
+        # Third message - second session concluded  
+        self.assertEqual(messages[2].content, "Session concluded at 11:45:00 PM")
+        self.assertTrue(messages[2].is_session_concluded)
+    
+    def test_parse_no_session_concluded_message(self):
+        """Test parsing when there is no session concluded message"""
+        html_content = '''<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Bob<SPAN STYLE="font-size: xx-small;"> (9:51:32 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>regular message</FONT></SPAN><BR></HTML>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].content, "regular message")
+        self.assertFalse(messages[0].is_session_concluded)
+    
+    def test_parse_chronological_order_with_session_concluded(self):
+        """Test that session concluded messages appear in correct chronological position"""
+        html_content = '''<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Alice<SPAN STYLE="font-size: xx-small;"> (10:00:00 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>first message</FONT></SPAN><BR>
+<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Bob<SPAN STYLE="font-size: xx-small;"> (10:05:00 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>second message</FONT></SPAN><BR>
+<HR><B>Session concluded at 10:10:00 PM</B><HR>
+<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Alice<SPAN STYLE="font-size: xx-small;"> (10:15:00 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>third message</FONT></SPAN><BR>
+<HR><B>Session concluded at 10:20:00 PM</B><HR></HTML>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 5)
+        
+        # Verify chronological order
+        expected_messages = [
+            ("Alice", "first message", False),
+            ("Bob", "second message", False), 
+            ("System", "Session concluded at 10:10:00 PM", True),
+            ("Alice", "third message", False),
+            ("System", "Session concluded at 10:20:00 PM", True)
+        ]
+        
+        for i, (expected_sender, expected_content, expected_session_concluded) in enumerate(expected_messages):
+            self.assertEqual(messages[i].sender, expected_sender, f"Message {i} sender mismatch")
+            self.assertEqual(messages[i].content, expected_content, f"Message {i} content mismatch")
+            self.assertEqual(messages[i].is_session_concluded, expected_session_concluded, f"Message {i} session_concluded flag mismatch")
 
 
 class TestAIMParserFactory(unittest.TestCase):
