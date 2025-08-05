@@ -12,7 +12,8 @@ class MarkdownConverter:
         self.group_threshold_minutes = 2
     
     def convert(self, messages: List[Message], conversation_date: Optional[datetime] = None, 
-                group_consecutive: bool = True, description: Optional[str] = None) -> str:
+                group_consecutive: bool = True, description: Optional[str] = None, 
+                tags: Optional[List[str]] = None) -> str:
         if not messages:
             return ""
         
@@ -25,6 +26,13 @@ class MarkdownConverter:
             output.append(f"date: {date_str}")
             if description:
                 output.append(f"description: {description}")
+            
+            # Add tags (default to aim if none provided or empty)
+            tags_to_use = tags if tags else ["aim"]
+            output.append("tags:")
+            for tag in tags_to_use:
+                output.append(f"  - {tag}")
+            
             output.append("---")
             output.append("")
         

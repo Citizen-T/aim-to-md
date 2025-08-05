@@ -14,7 +14,7 @@ A Python utility to convert old AOL Instant Messenger (AIM) conversation logs fr
 - Extracts conversation dates from filenames
 - **AI-powered intelligent filename generation** using Google's Gemini AI
 - Generates descriptive filenames in standardized format: `YYYY-MM-DD Title [participants]`
-- **YAML frontmatter support** with AI-generated descriptions for Obsidian and other markdown tools
+- **YAML frontmatter support** with AI-generated descriptions and automatic tagging for Obsidian and other markdown tools
 
 ## Installation
 
@@ -95,13 +95,15 @@ python -m src.main "path/to/aim-logs/" -r
 
 ### YAML Frontmatter Support
 
-The converter automatically includes YAML frontmatter when a date can be extracted from the filename. When using intelligent filename generation (no `-o` option specified), it also includes an AI-generated description. This is particularly useful for Obsidian and other markdown tools that support frontmatter:
+The converter automatically includes YAML frontmatter when a date can be extracted from the filename. The frontmatter includes a `tags` property with the default `aim` tag, and when using intelligent filename generation (no `-o` option specified), it also includes an AI-generated description. This is particularly useful for Obsidian and other markdown tools that support frontmatter:
 
 **With intelligent filename generation (default behavior):**
 ```markdown
 ---
 date: 2004-05-18
 description: In this conversation Alice and Bob catch up on recent events, discuss their weekend plans, and share updates about their work projects.
+tags:
+  - aim
 ---
 
 # AIM Conversation - May 18, 2004
@@ -114,6 +116,8 @@ description: In this conversation Alice and Bob catch up on recent events, discu
 ```markdown
 ---
 date: 2004-05-18
+tags:
+  - aim
 ---
 
 # AIM Conversation - May 18, 2004
@@ -131,6 +135,9 @@ Files without extractable dates will not include frontmatter:
 
 The AI-generated description summarizes the main topics and themes of the conversation, making it easier for other LLMs and tools to understand the content without reading the entire conversation. This feature only activates when using intelligent filename generation, which requires a `GEMINI_API_KEY`.
 
+**Tags System:**
+All generated markdown files include a `tags` property in the frontmatter with the default `aim` tag. This provides consistent categorization for AIM conversations when imported into note-taking systems like Obsidian. The tags use standard YAML array format compatible with Obsidian and other markdown tools and can be used for filtering, searching, and organizing your converted conversations.
+
 ## Example Output
 
 Input HTML:
@@ -147,6 +154,8 @@ Output Markdown (with intelligent filename generation):
 ---
 date: 2004-05-18
 description: Alice attempts to start a conversation but receives no response, eventually realizing the other person may have fallen asleep before signing off.
+tags:
+  - aim
 ---
 
 # AIM Conversation - May 18, 2004

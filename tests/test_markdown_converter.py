@@ -84,6 +84,8 @@ class TestMarkdownConverter(unittest.TestCase):
         
         expected = """---
 date: 2004-05-18
+tags:
+  - aim
 ---
 
 # AIM Conversation - May 18, 2004
@@ -293,6 +295,8 @@ date: 2004-05-18
         expected_frontmatter = """---
 date: 2004-05-18
 description: In this conversation Alice and Bob exchange greetings and discuss their plans for the weekend.
+tags:
+  - aim
 ---"""
         
         self.assertIn(expected_frontmatter, result)
@@ -310,11 +314,15 @@ description: In this conversation Alice and Bob exchange greetings and discuss t
         
         expected_frontmatter = """---
 date: 2004-05-18
+tags:
+  - aim
 ---"""
         
         self.assertIn(expected_frontmatter, result)
         # Should not contain 'description:' line
         self.assertNotIn("description:", result)
+        # Should contain tags
+        self.assertIn("tags:", result)
     
     def test_no_frontmatter_without_date(self):
         """Test that no frontmatter is generated when no date is provided, even with description"""
@@ -330,6 +338,108 @@ date: 2004-05-18
         self.assertNotIn("---", result)
         self.assertNotIn("description:", result)
         self.assertNotIn("date:", result)
+    
+    def test_frontmatter_with_default_tags(self):
+        """Test that default aim tag is included when no custom tags provided"""
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello")
+        ]
+        
+        date = datetime(2004, 5, 18)
+        
+        result = self.converter.convert(messages, conversation_date=date)
+        
+        expected_frontmatter = """---
+date: 2004-05-18
+tags:
+  - aim
+---"""
+        
+        self.assertIn(expected_frontmatter, result)
+    
+    def test_frontmatter_with_custom_tags(self):
+        """Test that custom tags are included when provided"""
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello"),
+            Message(sender="Bob", timestamp="10:57:05 PM", content="Hi there")
+        ]
+        
+        date = datetime(2004, 5, 18)
+        custom_tags = ["aim", "friends", "casual-chat"]
+        
+        result = self.converter.convert(messages, conversation_date=date, tags=custom_tags)
+        
+        expected_frontmatter = """---
+date: 2004-05-18
+tags:
+  - aim
+  - friends
+  - casual-chat
+---"""
+        
+        self.assertIn(expected_frontmatter, result)
+    
+    def test_frontmatter_with_description_and_tags(self):
+        """Test frontmatter with both description and tags"""
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello"),
+            Message(sender="Bob", timestamp="10:57:05 PM", content="Hi there")
+        ]
+        
+        date = datetime(2004, 5, 18)
+        description = "Alice and Bob exchange greetings in this conversation."
+        custom_tags = ["aim", "greetings"]
+        
+        result = self.converter.convert(messages, conversation_date=date, description=description, tags=custom_tags)
+        
+        expected_frontmatter = """---
+date: 2004-05-18
+description: Alice and Bob exchange greetings in this conversation.
+tags:
+  - aim
+  - greetings
+---"""
+        
+        self.assertIn(expected_frontmatter, result)
+    
+    def test_frontmatter_with_empty_tags_list(self):
+        """Test that empty tags list results in default tag"""
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello")
+        ]
+        
+        date = datetime(2004, 5, 18)
+        empty_tags = []
+        
+        result = self.converter.convert(messages, conversation_date=date, tags=empty_tags)
+        
+        # Empty list should be treated as None and get default tag
+        expected_frontmatter = """---
+date: 2004-05-18
+tags:
+  - aim
+---"""
+        
+        self.assertIn(expected_frontmatter, result)
+    
+    def test_frontmatter_with_single_custom_tag(self):
+        """Test frontmatter with single custom tag"""
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello")
+        ]
+        
+        date = datetime(2004, 5, 18)
+        single_tag = ["work-chat"]
+        
+        result = self.converter.convert(messages, conversation_date=date, tags=single_tag)
+        
+        expected_frontmatter = """---
+date: 2004-05-18
+tags:
+  - work-chat
+---"""
+        
+        self.assertIn(expected_frontmatter, result)
 
 
 if __name__ == '__main__':
