@@ -35,7 +35,7 @@ class TestIntegration(unittest.TestCase):
         # Check that we have the expected users and messages
         self.assertIn("**Alice**", markdown)
         self.assertIn("**Bob**", markdown)
-        self.assertIn("> hey there\\!", markdown)  # Exclamation mark gets escaped
+        self.assertIn("> hey there!", markdown)  # Exclamation mark no longer escaped
         self.assertIn("> oh hi Alice", markdown)
         
         # Check that the last message is the sign off in callout format
