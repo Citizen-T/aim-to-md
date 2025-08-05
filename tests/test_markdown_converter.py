@@ -248,6 +248,31 @@ class TestMarkdownConverter(unittest.TestCase):
 > Session concluded at 9:52:55 PM
 """
         self.assertEqual(markdown, expected)
+    
+    def test_convert_multiple_session_concluded_messages(self):
+        # Test conversation with multiple session concluded messages
+        messages = [
+            Message(sender="Alice", timestamp="10:00:00 PM", content="hello"),
+            Message(sender="System", timestamp="", content="Session concluded at 10:30:00 PM", is_system_message=True, is_session_concluded=True),
+            Message(sender="Bob", timestamp="11:00:00 PM", content="hi again"),
+            Message(sender="System", timestamp="", content="Session concluded at 11:45:00 PM", is_system_message=True, is_session_concluded=True)
+        ]
+        
+        markdown = self.converter.convert(messages)
+        
+        expected = """**Alice** (10:00:00 PM):
+> hello
+
+> [!ATTENTION]
+> Session concluded at 10:30:00 PM
+
+**Bob** (11:00:00 PM):
+> hi again
+
+> [!ATTENTION]
+> Session concluded at 11:45:00 PM
+"""
+        self.assertEqual(markdown, expected)
 
 
 if __name__ == '__main__':

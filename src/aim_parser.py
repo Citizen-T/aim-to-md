@@ -280,14 +280,13 @@ class SpanBasedParser(BaseAIMParser):
         return ""
     
     def _process_session_concluded(self, html_content: str, messages: List[Message]):
-        """Check for and process session concluded message at the end of HTML"""
+        """Check for and process all session concluded messages in HTML"""
         # Look for session concluded pattern: <HR><B>Session concluded at TIME</B><HR>
-        # Use findall to get all matches, then take the last one
+        # Find all matches and add each one as a separate message
         session_pattern = r'<HR><B>Session concluded at ([^<]+)</B><HR>'
         matches = re.findall(session_pattern, html_content)
-        if matches:
-            # Take the last session concluded message
-            timestamp = matches[-1].strip()
+        for timestamp in matches:
+            timestamp = timestamp.strip()
             messages.append(Message(
                 sender="System",
                 timestamp="",
