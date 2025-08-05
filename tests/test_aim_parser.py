@@ -217,6 +217,46 @@ Back in 1 hour</FONT><BR>'''
         self.assertEqual(messages[0].content, "Out for lunch Back in 1 hour")
         self.assertTrue(messages[0].is_system_message)
         self.assertTrue(messages[0].is_auto_response)
+    
+    def test_parse_session_concluded_message(self):
+        """Test parsing of session concluded messages in SPAN format"""
+        html_content = '''<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Bob<SPAN STYLE="font-size: xx-small;"> (9:51:32 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>bye love</FONT></SPAN><BR></BODY><HR><B>Session concluded at 9:52:55 PM</B><HR></HTML>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 2)
+        
+        # First message - regular
+        self.assertEqual(messages[0].sender, "Bob")
+        self.assertEqual(messages[0].content, "bye love")
+        self.assertFalse(messages[0].is_system_message)
+        
+        # Second message - session concluded
+        self.assertEqual(messages[1].sender, "System")
+        self.assertEqual(messages[1].content, "Session concluded at 9:52:55 PM")
+        self.assertTrue(messages[1].is_system_message)
+        self.assertTrue(messages[1].is_session_concluded)
+    
+    def test_parse_multiple_session_concluded_messages(self):
+        """Test parsing when there are multiple session concluded messages (takes last one)"""
+        html_content = '''<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Alice<SPAN STYLE="font-size: xx-small;"> (10:00:00 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>hello</FONT></SPAN><BR><HR><B>Session concluded at 10:30:00 PM</B><HR><HR><B>Session concluded at 11:45:00 PM</B><HR></HTML>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 2)
+        # Should take the last session concluded message
+        self.assertEqual(messages[1].content, "Session concluded at 11:45:00 PM")
+        self.assertTrue(messages[1].is_session_concluded)
+    
+    def test_parse_no_session_concluded_message(self):
+        """Test parsing when there is no session concluded message"""
+        html_content = '''<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Bob<SPAN STYLE="font-size: xx-small;"> (9:51:32 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>regular message</FONT></SPAN><BR></HTML>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].content, "regular message")
+        self.assertFalse(messages[0].is_session_concluded)
 
 
 class TestAIMParserFactory(unittest.TestCase):

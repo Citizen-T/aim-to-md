@@ -13,6 +13,7 @@ class Message:
     content: str
     is_system_message: bool = False
     is_auto_response: bool = False
+    is_session_concluded: bool = False
 
 
 class BaseAIMParser(ABC):
@@ -185,6 +186,10 @@ class SpanBasedParser(BaseAIMParser):
                 
             message_content = part[:span_end]
             self._process_span_message(message_content, messages)
+        
+        # Check for session concluded message at the end
+        self._process_session_concluded(html_content, messages)
+        
         return messages
     
     def _find_span_end(self, content: str) -> int:
@@ -273,6 +278,23 @@ class SpanBasedParser(BaseAIMParser):
                 return content.strip()
         
         return ""
+    
+    def _process_session_concluded(self, html_content: str, messages: List[Message]):
+        """Check for and process session concluded message at the end of HTML"""
+        # Look for session concluded pattern: <HR><B>Session concluded at TIME</B><HR>
+        # Use findall to get all matches, then take the last one
+        session_pattern = r'<HR><B>Session concluded at ([^<]+)</B><HR>'
+        matches = re.findall(session_pattern, html_content)
+        if matches:
+            # Take the last session concluded message
+            timestamp = matches[-1].strip()
+            messages.append(Message(
+                sender="System",
+                timestamp="",
+                content=f"Session concluded at {timestamp}",
+                is_system_message=True,
+                is_session_concluded=True
+            ))
 
 
 class AIMParserFactory:

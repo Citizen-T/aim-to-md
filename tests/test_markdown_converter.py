@@ -210,6 +210,44 @@ class TestMarkdownConverter(unittest.TestCase):
 > \\*busy\\* with \\_work\\_\\!
 """
         self.assertEqual(markdown, expected)
+    
+    def test_convert_session_concluded_message(self):
+        # Test session concluded formatting as ATTENTION callout
+        messages = [
+            Message(sender="System", timestamp="", content="Session concluded at 9:52:55 PM", is_system_message=True, is_session_concluded=True)
+        ]
+        
+        markdown = self.converter.convert(messages)
+        
+        expected = """> [!ATTENTION]
+> Session concluded at 9:52:55 PM
+"""
+        self.assertEqual(markdown, expected)
+    
+    def test_convert_mixed_system_messages(self):
+        # Test conversation with regular, auto response, session concluded, and system messages
+        messages = [
+            Message(sender="Bob", timestamp="9:51:32 PM", content="bye love"),
+            Message(sender="Alice", timestamp="9:51:35 PM", content="sleeping", is_system_message=True, is_auto_response=True),
+            Message(sender="System", timestamp="", content="Alice signed off at 9:51:43 PM", is_system_message=True),
+            Message(sender="System", timestamp="", content="Session concluded at 9:52:55 PM", is_system_message=True, is_session_concluded=True)
+        ]
+        
+        markdown = self.converter.convert(messages)
+        
+        expected = """**Bob** (9:51:32 PM):
+> bye love
+
+> [!QUOTE] Auto response from Alice (9:51:35 PM)
+> sleeping
+
+> [!NOTE]
+> Alice signed off at 9:51:43 PM
+
+> [!ATTENTION]
+> Session concluded at 9:52:55 PM
+"""
+        self.assertEqual(markdown, expected)
 
 
 if __name__ == '__main__':
