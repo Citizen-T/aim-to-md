@@ -34,7 +34,6 @@ class MarkdownConverter:
                 output.append(f"  - {tag}")
             
             output.append("---")
-            output.append("")
         
         # Add header if date is provided
         if conversation_date:
