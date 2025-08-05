@@ -177,6 +177,157 @@ class TestFilenameGenerator(unittest.TestCase):
         
         # Title should be truncated to 50 characters
         self.assertLessEqual(len(filename.split(' [')[0].split(' ', 1)[1]), 50)
+    
+    def test_generate_description_success(self):
+        """Test successful description generation with LLM"""
+        # Setup mock response
+        mock_response = MagicMock()
+        mock_response.text = "In this conversation Alice and Bob discuss their weekend plans and decide to go hiking together."
+        self.mock_model.generate_content.return_value = mock_response
+        
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="What are you doing this weekend?"),
+            Message(sender="Bob", timestamp="10:57:05 PM", content="I was thinking of going hiking"),
+            Message(sender="Alice", timestamp="10:57:10 PM", content="That sounds great! Can I join you?"),
+            Message(sender="Bob", timestamp="10:57:15 PM", content="Of course!")
+        ]
+        
+        description = self.generator.generate_description(messages)
+        
+        expected = "In this conversation Alice and Bob discuss their weekend plans and decide to go hiking together."
+        self.assertEqual(description, expected)
+        self.mock_model.generate_content.assert_called_once()
+    
+    def test_generate_description_empty_messages(self):
+        """Test description generation with empty message list"""
+        description = self.generator.generate_description([])
+        self.assertEqual(description, "Empty conversation")
+    
+    def test_generate_description_only_system_messages(self):
+        """Test description generation with only system messages"""
+        messages = [
+            Message(sender="System", timestamp="", content="Alice signed on", is_system_message=True),
+            Message(sender="System", timestamp="", content="Bob signed off", is_system_message=True)
+        ]
+        
+        description = self.generator.generate_description(messages)
+        self.assertEqual(description, "Conversation with only system messages")
+    
+    def test_generate_description_with_system_messages_mixed(self):
+        """Test description generation filtering out system messages"""
+        # Setup mock response
+        mock_response = MagicMock()
+        mock_response.text = "Alice greets Bob in a friendly conversation."
+        self.mock_model.generate_content.return_value = mock_response
+        
+        messages = [
+            Message(sender="System", timestamp="", content="Alice signed on", is_system_message=True),
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello Bob!"),
+            Message(sender="Bob", timestamp="10:57:05 PM", content="Hi Alice!"),
+            Message(sender="System", timestamp="", content="Bob signed off", is_system_message=True)
+        ]
+        
+        description = self.generator.generate_description(messages)
+        
+        self.assertEqual(description, "Alice greets Bob in a friendly conversation.")
+        # Verify the system messages were filtered out in the prompt
+        call_args = self.mock_model.generate_content.call_args[0][0]
+        self.assertNotIn("Alice signed on", call_args)
+        self.assertNotIn("Bob signed off", call_args)
+        self.assertIn("Alice: Hello Bob!", call_args)
+        self.assertIn("Bob: Hi Alice!", call_args)
+    
+    def test_generate_description_api_error(self):
+        """Test handling of LLM API errors in description generation"""
+        # Setup mock to raise an exception
+        self.mock_model.generate_content.side_effect = Exception("API Error")
+        
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello"),
+            Message(sender="Bob", timestamp="10:57:05 PM", content="Hi")
+        ]
+        
+        with self.assertRaises(RuntimeError) as cm:
+            self.generator.generate_description(messages)
+        
+        self.assertIn("Failed to generate description using Gemini API", str(cm.exception))
+    
+    def test_generate_description_with_quotes(self):
+        """Test handling of LLM response with quotes in description"""
+        # Setup mock response with quotes
+        mock_response = MagicMock()
+        mock_response.text = '"Alice and Bob catch up on recent events and make plans for the future."'
+        self.mock_model.generate_content.return_value = mock_response
+        
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="How have you been?"),
+            Message(sender="Bob", timestamp="10:57:05 PM", content="Pretty good, you?")
+        ]
+        
+        description = self.generator.generate_description(messages)
+        
+        # Quotes should be removed
+        expected = "Alice and Bob catch up on recent events and make plans for the future."
+        self.assertEqual(description, expected)
+    
+    def test_generate_description_too_short(self):
+        """Test handling of very short LLM responses"""
+        # Setup mock response that's too short
+        mock_response = MagicMock()
+        mock_response.text = "Chat"
+        self.mock_model.generate_content.return_value = mock_response
+        
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hi"),
+            Message(sender="Bob", timestamp="10:57:05 PM", content="Hello")
+        ]
+        
+        description = self.generator.generate_description(messages)
+        
+        # Should use fallback for short responses
+        self.assertEqual(description, "Brief conversation between participants")
+    
+    def test_generate_description_too_long(self):
+        """Test handling of very long LLM responses"""
+        # Setup mock response that's too long
+        long_text = "This is a very long description that exceeds the reasonable length limit for frontmatter descriptions and should be truncated to maintain readability and compatibility with markdown parsers and other tools that process frontmatter content." * 2
+        mock_response = MagicMock()
+        mock_response.text = long_text
+        self.mock_model.generate_content.return_value = mock_response
+        
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello"),
+            Message(sender="Bob", timestamp="10:57:05 PM", content="Hi there")
+        ]
+        
+        description = self.generator.generate_description(messages)
+        
+        # Should be truncated to 300 characters or less
+        self.assertLessEqual(len(description), 300)
+        # Should end with a complete sentence if possible
+        self.assertTrue(description.endswith('.') or len(description) == 300)
+    
+    def test_generate_description_message_limit(self):
+        """Test that description generation limits messages to avoid token limits"""
+        # Setup mock response
+        mock_response = MagicMock()
+        mock_response.text = "Long conversation between Alice and Bob covering many topics."
+        self.mock_model.generate_content.return_value = mock_response
+        
+        # Create more than 30 messages
+        messages = []
+        for i in range(35):
+            messages.append(Message(sender="Alice" if i % 2 == 0 else "Bob", 
+                                  timestamp="10:56:59 PM", 
+                                  content=f"Message {i+1}"))
+        
+        description = self.generator.generate_description(messages)
+        
+        # Verify the prompt only included first 30 messages
+        call_args = self.mock_model.generate_content.call_args[0][0]
+        self.assertIn("Message 30", call_args)
+        self.assertNotIn("Message 31", call_args)
+        self.assertEqual(description, "Long conversation between Alice and Bob covering many topics.")
 
 
 if __name__ == '__main__':
