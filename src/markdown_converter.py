@@ -18,6 +18,14 @@ class MarkdownConverter:
         
         output = []
         
+        # Add frontmatter if date is provided
+        if conversation_date:
+            date_str = conversation_date.strftime("%Y-%m-%d")
+            output.append("---")
+            output.append(f"date: {date_str}")
+            output.append("---")
+            output.append("")
+        
         # Add header if date is provided
         if conversation_date:
             date_str = conversation_date.strftime("%B %d, %Y")

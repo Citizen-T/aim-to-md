@@ -82,7 +82,11 @@ class TestMarkdownConverter(unittest.TestCase):
         
         markdown = self.converter.convert(messages, conversation_date=date)
         
-        expected = """# AIM Conversation - May 18, 2004
+        expected = """---
+date: 2004-05-18
+---
+
+# AIM Conversation - May 18, 2004
 
 **UserA** (10:56:59 PM):
 > hello

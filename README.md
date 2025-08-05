@@ -14,6 +14,7 @@ A Python utility to convert old AOL Instant Messenger (AIM) conversation logs fr
 - Extracts conversation dates from filenames
 - **AI-powered intelligent filename generation** using Google's Gemini AI
 - Generates descriptive filenames in standardized format: `YYYY-MM-DD Title [participants]`
+- **YAML frontmatter support** for Obsidian and other markdown tools
 
 ## Installation
 
@@ -59,7 +60,7 @@ This tool uses Google's Gemini AI to generate intelligent conversation titles. Y
 Convert a single AIM HTML file to Markdown:
 
 ```bash
-python aim2md.py "path/to/conversation.htm"
+python -m src.main "path/to/conversation.htm"
 ```
 
 When no output filename is specified, the tool automatically generates an intelligent filename using AI in the format:
@@ -75,7 +76,7 @@ Examples:
 ### Specify Output Location
 
 ```bash
-python aim2md.py "conversation.htm" -o "output.md"
+python -m src.main "conversation.htm" -o "output.md"
 ```
 
 ### Process Multiple Files
@@ -83,13 +84,35 @@ python aim2md.py "conversation.htm" -o "output.md"
 Convert all HTML files in a directory:
 
 ```bash
-python aim2md.py "path/to/aim-logs/"
+python -m src.main "path/to/aim-logs/"
 ```
 
 Process directories recursively:
 
 ```bash
-python aim2md.py "path/to/aim-logs/" -r
+python -m src.main "path/to/aim-logs/" -r
+```
+
+### YAML Frontmatter Support
+
+The converter automatically includes YAML frontmatter with the conversation date when a date can be extracted from the filename. This is particularly useful for Obsidian and other markdown tools that support frontmatter:
+
+```markdown
+---
+date: 2004-05-18
+---
+
+# AIM Conversation - May 18, 2004
+
+**Alice** (10:57:26 PM):
+> Hey there!
+```
+
+Files without extractable dates will not include frontmatter:
+
+```markdown
+**Alice** (10:57:26 PM):
+> Hey there!
 ```
 
 ## Example Output
@@ -105,6 +128,10 @@ Alice signed off at 11:15:30 PM
 
 Output Markdown:
 ```markdown
+---
+date: 2004-05-18
+---
+
 # AIM Conversation - May 18, 2004
 
 **Alice** (10:57:26 PM):
