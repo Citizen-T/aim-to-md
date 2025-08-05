@@ -2,14 +2,14 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from src.aim_parser import AIMParser
 from src.markdown_converter import MarkdownConverter
 from src.filename_generator import FilenameGenerator
 
 
-def process_file(input_path: Path, output_path: Path) -> None:
+def process_file(input_path: Path, output_path: Path, description: str = None) -> None:
     """Process a single AIM HTML file and convert it to Markdown."""
     parser = AIMParser()
     converter = MarkdownConverter()
@@ -32,7 +32,7 @@ def process_file(input_path: Path, output_path: Path) -> None:
             date = None
         
         # Convert to Markdown
-        markdown = converter.convert(messages, conversation_date=date, group_consecutive=True)
+        markdown = converter.convert(messages, conversation_date=date, group_consecutive=True, description=description)
         
         # Write the output
         with open(output_path, 'w', encoding='utf-8') as f:
@@ -46,8 +46,8 @@ def process_file(input_path: Path, output_path: Path) -> None:
         raise
 
 
-def _generate_standardized_filename(input_file: Path) -> Path:
-    """Generate a standardized filename using LLM for title generation"""
+def _generate_standardized_filename(input_file: Path) -> Tuple[Path, str]:
+    """Generate a standardized filename and description using LLM"""
     parser = AIMParser()
     filename_generator = FilenameGenerator()
     
@@ -63,10 +63,11 @@ def _generate_standardized_filename(input_file: Path) -> Path:
     except ValueError:
         date = None
     
-    # Generate standardized filename using LLM
+    # Generate standardized filename and description using LLM
     standardized_name = filename_generator.generate_filename(messages, date)
+    description = filename_generator.generate_description(messages)
     
-    return input_file.parent / f"{standardized_name}.md"
+    return input_file.parent / f"{standardized_name}.md", description
 
 
 def main():
@@ -117,6 +118,9 @@ def main():
     
     # Process each file
     for input_file in files_to_process:
+        # Initialize description variable
+        description = None
+        
         # Determine output path
         if args.output:
             output_path = Path(args.output)
@@ -129,11 +133,11 @@ def main():
                 # Single file
                 output_file = output_path
         else:
-            # Generate standardized filename using LLM
-            output_file = _generate_standardized_filename(input_file)
+            # Generate standardized filename and description using LLM
+            output_file, description = _generate_standardized_filename(input_file)
         
         try:
-            process_file(input_file, output_file)
+            process_file(input_file, output_file, description)
         except Exception:
             # Error already printed in process_file
             continue

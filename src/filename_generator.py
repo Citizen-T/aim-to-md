@@ -44,6 +44,68 @@ class FilenameGenerator:
         
         return f"{date_str} {title} {participants_str}"
     
+    def generate_description(self, messages: List[Message]) -> str:
+        """Generate a conversation description using Gemini API"""
+        if not messages:
+            return "Empty conversation"
+        
+        # Filter out system messages for description generation
+        regular_messages = [msg for msg in messages if not msg.is_system_message]
+        if not regular_messages:
+            return "Conversation with only system messages"
+        
+        # Prepare conversation content for the LLM (similar to title generation)
+        conversation_content = []
+        for message in regular_messages:
+            conversation_content.append(f"{message.sender}: {message.content}")
+        
+        # Limit content to avoid token limits (take first 30 messages for description)
+        if len(conversation_content) > 30:
+            conversation_content = conversation_content[:30]
+        
+        conversation_text = "\n".join(conversation_content)
+        
+        prompt = f"""Based on this AIM conversation, generate a concise description (1-2 sentences) that summarizes the main topics, themes, and key events discussed. This description will be used by other LLMs to quickly understand whether the conversation is relevant to their search criteria.
+
+Focus on:
+- Main topics or subjects discussed
+- Key events mentioned
+- Overall themes or purposes of the conversation
+- Important decisions or conclusions reached
+
+Conversation:
+{conversation_text}
+
+Examples of good descriptions:
+- "In this conversation Bob and Alice discuss planning their summer vacation to Italy, comparing flight options and hotel recommendations before deciding on travel dates."
+- "Alice and Bob catch up after a long time apart, sharing updates about their jobs, discussing mutual friends, and making plans to meet up next weekend."
+- "The conversation focuses on troubleshooting a software bug, with Bob helping Alice debug her Python code and suggesting alternative approaches to the problem."
+
+Generate only the description, nothing else:"""
+
+        try:
+            response = self.model.generate_content(prompt)
+            description = response.text.strip()
+            
+            # Clean up the response
+            description = re.sub(r'^["\']|["\']$', '', description)  # Remove quotes
+            description = description.replace('\n', ' ').strip()
+            
+            # Ensure reasonable length (not too short or too long)
+            if len(description) < 20:
+                return "Brief conversation between participants"
+            elif len(description) > 300:
+                description = description[:300].strip()
+                # Try to end at a complete sentence
+                last_period = description.rfind('.')
+                if last_period > 200:
+                    description = description[:last_period + 1]
+                
+            return description if description else "General conversation between participants"
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to generate description using Gemini API: {e}")
+    
     def _extract_participants(self, messages: List[Message]) -> Set[str]:
         """Extract unique participant names from messages"""
         participants = set()

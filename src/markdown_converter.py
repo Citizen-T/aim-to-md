@@ -12,7 +12,7 @@ class MarkdownConverter:
         self.group_threshold_minutes = 2
     
     def convert(self, messages: List[Message], conversation_date: Optional[datetime] = None, 
-                group_consecutive: bool = True) -> str:
+                group_consecutive: bool = True, description: Optional[str] = None) -> str:
         if not messages:
             return ""
         
@@ -23,6 +23,8 @@ class MarkdownConverter:
             date_str = conversation_date.strftime("%Y-%m-%d")
             output.append("---")
             output.append(f"date: {date_str}")
+            if description:
+                output.append(f"description: {description}")
             output.append("---")
             output.append("")
         

@@ -277,6 +277,59 @@ date: 2004-05-18
 > Session concluded at 11:45:00 PM
 """
         self.assertEqual(markdown, expected)
+    
+    def test_frontmatter_with_description(self):
+        """Test that description is included in frontmatter when provided"""
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello"),
+            Message(sender="Bob", timestamp="10:57:05 PM", content="Hi there")
+        ]
+        
+        date = datetime(2004, 5, 18)
+        description = "In this conversation Alice and Bob exchange greetings and discuss their plans for the weekend."
+        
+        result = self.converter.convert(messages, conversation_date=date, description=description)
+        
+        expected_frontmatter = """---
+date: 2004-05-18
+description: In this conversation Alice and Bob exchange greetings and discuss their plans for the weekend.
+---"""
+        
+        self.assertIn(expected_frontmatter, result)
+        self.assertIn("# AIM Conversation - May 18, 2004", result)
+    
+    def test_frontmatter_without_description(self):
+        """Test that frontmatter works without description (backward compatibility)"""
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello")
+        ]
+        
+        date = datetime(2004, 5, 18)
+        
+        result = self.converter.convert(messages, conversation_date=date)
+        
+        expected_frontmatter = """---
+date: 2004-05-18
+---"""
+        
+        self.assertIn(expected_frontmatter, result)
+        # Should not contain 'description:' line
+        self.assertNotIn("description:", result)
+    
+    def test_no_frontmatter_without_date(self):
+        """Test that no frontmatter is generated when no date is provided, even with description"""
+        messages = [
+            Message(sender="Alice", timestamp="10:56:59 PM", content="Hello")
+        ]
+        
+        description = "Alice greets someone in this brief conversation."
+        
+        result = self.converter.convert(messages, description=description)
+        
+        # Should not contain frontmatter at all
+        self.assertNotIn("---", result)
+        self.assertNotIn("description:", result)
+        self.assertNotIn("date:", result)
 
 
 if __name__ == '__main__':
