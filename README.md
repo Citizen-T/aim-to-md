@@ -95,15 +95,8 @@ python -m src.main "path/to/aim-logs/" -r
 
 ### YAML Frontmatter Support
 
-For Obsidian and other markdown tools that support YAML frontmatter, use the `--frontmatter` flag:
+The converter automatically includes YAML frontmatter with the conversation date when a date can be extracted from the filename. This is particularly useful for Obsidian and other markdown tools that support frontmatter:
 
-```bash
-python -m src.main "conversation.htm" --frontmatter
-```
-
-This adds a YAML frontmatter section with the conversation date:
-
-**With frontmatter:**
 ```markdown
 ---
 date: 2004-05-18
@@ -115,10 +108,9 @@ date: 2004-05-18
 > Hey there!
 ```
 
-**Without frontmatter (default):**
-```markdown
-# AIM Conversation - May 18, 2004
+Files without extractable dates will not include frontmatter:
 
+```markdown
 **Alice** (10:57:26 PM):
 > Hey there!
 ```
@@ -136,6 +128,10 @@ Alice signed off at 11:15:30 PM
 
 Output Markdown:
 ```markdown
+---
+date: 2004-05-18
+---
+
 # AIM Conversation - May 18, 2004
 
 **Alice** (10:57:26 PM):
