@@ -28,7 +28,8 @@ class TestFilenameGenerator(unittest.TestCase):
     
     def test_init_without_api_key(self):
         """Test that FilenameGenerator raises error when API key is missing"""
-        with patch.dict(os.environ, {}, clear=True):
+        with patch.dict(os.environ, {}, clear=True), \
+             patch('src.filename_generator.load_dotenv'):
             with self.assertRaises(ValueError) as cm:
                 FilenameGenerator()
             self.assertIn("Please set it in your .env file or environment variables", str(cm.exception))
