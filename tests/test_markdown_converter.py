@@ -273,6 +273,83 @@ class TestMarkdownConverter(unittest.TestCase):
 > Session concluded at 11:45:00 PM
 """
         self.assertEqual(markdown, expected)
+    
+    def test_convert_with_frontmatter_enabled(self):
+        # Test frontmatter generation when enabled with date
+        messages = [
+            Message(sender="UserA", timestamp="10:56:59 PM", content="hello")
+        ]
+        date = datetime(2004, 5, 18)
+        
+        markdown = self.converter.convert(messages, conversation_date=date, include_frontmatter=True)
+        
+        expected = """---
+date: 2004-05-18
+---
+
+# AIM Conversation - May 18, 2004
+
+**UserA** (10:56:59 PM):
+> hello
+"""
+        self.assertEqual(markdown, expected)
+    
+    def test_convert_with_frontmatter_disabled(self):
+        # Test that frontmatter is not added when disabled (default behavior)
+        messages = [
+            Message(sender="UserA", timestamp="10:56:59 PM", content="hello")
+        ]
+        date = datetime(2004, 5, 18)
+        
+        markdown = self.converter.convert(messages, conversation_date=date, include_frontmatter=False)
+        
+        expected = """# AIM Conversation - May 18, 2004
+
+**UserA** (10:56:59 PM):
+> hello
+"""
+        self.assertEqual(markdown, expected)
+    
+    def test_convert_with_frontmatter_but_no_date(self):
+        # Test that frontmatter is not added when no date is provided
+        messages = [
+            Message(sender="UserA", timestamp="10:56:59 PM", content="hello")
+        ]
+        
+        markdown = self.converter.convert(messages, conversation_date=None, include_frontmatter=True)
+        
+        expected = """**UserA** (10:56:59 PM):
+> hello
+"""
+        self.assertEqual(markdown, expected)
+    
+    def test_convert_with_frontmatter_complex_conversation(self):
+        # Test frontmatter with a complex conversation including system messages
+        messages = [
+            Message(sender="Alice", timestamp="10:00:00 PM", content="hello"),
+            Message(sender="Bob", timestamp="10:01:00 PM", content="hi there", is_system_message=False, is_auto_response=False),
+            Message(sender="System", timestamp="", content="Session concluded at 10:30:00 PM", is_system_message=True, is_session_concluded=True)
+        ]
+        date = datetime(2024, 12, 25)
+        
+        markdown = self.converter.convert(messages, conversation_date=date, include_frontmatter=True)
+        
+        expected = """---
+date: 2024-12-25
+---
+
+# AIM Conversation - December 25, 2024
+
+**Alice** (10:00:00 PM):
+> hello
+
+**Bob** (10:01:00 PM):
+> hi there
+
+> [!ATTENTION]
+> Session concluded at 10:30:00 PM
+"""
+        self.assertEqual(markdown, expected)
 
 
 if __name__ == '__main__':

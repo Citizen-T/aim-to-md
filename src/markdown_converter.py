@@ -12,11 +12,19 @@ class MarkdownConverter:
         self.group_threshold_minutes = 2
     
     def convert(self, messages: List[Message], conversation_date: Optional[datetime] = None, 
-                group_consecutive: bool = True) -> str:
+                group_consecutive: bool = True, include_frontmatter: bool = False) -> str:
         if not messages:
             return ""
         
         output = []
+        
+        # Add frontmatter if requested and date is provided
+        if include_frontmatter and conversation_date:
+            date_str = conversation_date.strftime("%Y-%m-%d")
+            output.append("---")
+            output.append(f"date: {date_str}")
+            output.append("---")
+            output.append("")
         
         # Add header if date is provided
         if conversation_date:
