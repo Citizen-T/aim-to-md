@@ -27,8 +27,8 @@ class MarkdownConverter:
             if description:
                 output.append(f"description: {description}")
             
-            # Add tags (default to #aim if none provided or empty)
-            tags_to_use = tags if tags else ["#aim"]
+            # Add tags (default to aim if none provided or empty)
+            tags_to_use = tags if tags else ["aim"]
             output.append("tags:")
             for tag in tags_to_use:
                 output.append(f"  - {tag}")
