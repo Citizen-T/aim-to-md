@@ -145,6 +145,71 @@ class TestMarkdownConverter(unittest.TestCase):
 > Guess you fell asleep
 """
         self.assertEqual(markdown, expected)
+    
+    def test_convert_auto_response_message(self):
+        # Test auto response formatting as QUOTE callout
+        messages = [
+            Message(sender="Bob", timestamp="1:04:11 AM", content="sleeping", is_system_message=True, is_auto_response=True)
+        ]
+        
+        markdown = self.converter.convert(messages)
+        
+        expected = """> [!QUOTE] Auto response from Bob (1:04:11 AM)
+> sleeping
+"""
+        self.assertEqual(markdown, expected)
+    
+    def test_convert_auto_response_multiline(self):
+        # Test auto response with multiline content
+        messages = [
+            Message(sender="Alice", timestamp="2:30:15 PM", content="Out for lunch\nBack in 1 hour", is_system_message=True, is_auto_response=True)
+        ]
+        
+        markdown = self.converter.convert(messages)
+        
+        expected = """> [!QUOTE] Auto response from Alice (2:30:15 PM)
+> Out for lunch
+> Back in 1 hour
+"""
+        self.assertEqual(markdown, expected)
+    
+    def test_convert_mixed_regular_auto_response_and_system(self):
+        # Test conversation with regular messages, auto responses, and system messages
+        messages = [
+            Message(sender="Bob", timestamp="1:04:10 AM", content="Hey there"),
+            Message(sender="Alice", timestamp="1:04:11 AM", content="sleeping", is_system_message=True, is_auto_response=True),
+            Message(sender="System", timestamp="", content="Alice signed off at 1:05:00 AM", is_system_message=True),
+            Message(sender="Bob", timestamp="1:04:15 AM", content="Talk tomorrow then")
+        ]
+        
+        markdown = self.converter.convert(messages)
+        
+        expected = """**Bob** (1:04:10 AM):
+> Hey there
+
+> [!QUOTE] Auto response from Alice (1:04:11 AM)
+> sleeping
+
+> [!NOTE]
+> Alice signed off at 1:05:00 AM
+
+**Bob** (1:04:15 AM):
+> Talk tomorrow then
+"""
+        self.assertEqual(markdown, expected)
+    
+    def test_convert_auto_response_with_special_chars(self):
+        # Test auto response with markdown special characters
+        messages = [
+            Message(sender="Bob", timestamp="3:15:45 PM", content="*busy* with _work_!", is_system_message=True, is_auto_response=True)
+        ]
+        
+        markdown = self.converter.convert(messages)
+        
+        expected = """> [!QUOTE] Auto response from Bob (3:15:45 PM)
+> \\*busy\\* with \\_work\\_\\!
+"""
+        self.assertEqual(markdown, expected)
 
 
 if __name__ == '__main__':

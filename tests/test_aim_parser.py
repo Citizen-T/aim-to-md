@@ -150,6 +150,73 @@ make sure to be there on time tomorrow&quot;<BR>
         self.assertEqual(messages[2].sender, "Alice")
         self.assertEqual(messages[2].timestamp, "10:54:45 PM")
         self.assertEqual(messages[2].content, "Back to pattern 1")
+    
+    def test_parse_auto_response_message(self):
+        """Test parsing of auto response messages"""
+        html_content = '''<B><FONT COLOR="#0000ff">Auto response from Bob<!-- (1:04:11 AM)--></B></FONT>: <FONT>sleeping</FONT><BR>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].sender, "Bob")
+        self.assertEqual(messages[0].timestamp, "1:04:11 AM")
+        self.assertEqual(messages[0].content, "sleeping")
+        self.assertTrue(messages[0].is_system_message)
+        self.assertTrue(messages[0].is_auto_response)
+    
+    def test_parse_auto_response_span_format(self):
+        """Test parsing of auto response messages in SPAN format"""
+        html_content = '''<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#ff0000">Auto response from Alice<SPAN STYLE="font-size: xx-small;"> (2:15:30 PM)</SPAN></B></FONT><FONT COLOR="#ff0000">: </FONT><FONT>Away from keyboard</FONT></SPAN><BR>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].sender, "Alice")
+        self.assertEqual(messages[0].timestamp, "2:15:30 PM")
+        self.assertEqual(messages[0].content, "Away from keyboard")
+        self.assertTrue(messages[0].is_system_message)
+        self.assertTrue(messages[0].is_auto_response)
+    
+    def test_parse_mixed_regular_and_auto_response(self):
+        """Test parsing conversation with both regular and auto response messages"""
+        html_content = '''<B><FONT COLOR="#0000ff">Bob<!-- (1:04:10 AM)--></B></FONT>: <FONT>Hey there</FONT><BR>
+<B><FONT COLOR="#ff0000">Auto response from Alice<!-- (1:04:11 AM)--></B></FONT>: <FONT>sleeping</FONT><BR>
+<B><FONT COLOR="#0000ff">Bob<!-- (1:04:15 AM)--></B></FONT>: <FONT>Talk tomorrow then</FONT><BR>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 3)
+        
+        # First message - regular
+        self.assertEqual(messages[0].sender, "Bob")
+        self.assertEqual(messages[0].content, "Hey there")
+        self.assertFalse(messages[0].is_system_message)
+        self.assertFalse(messages[0].is_auto_response)
+        
+        # Second message - auto response
+        self.assertEqual(messages[1].sender, "Alice")
+        self.assertEqual(messages[1].content, "sleeping")
+        self.assertTrue(messages[1].is_system_message)
+        self.assertTrue(messages[1].is_auto_response)
+        
+        # Third message - regular  
+        self.assertEqual(messages[2].sender, "Bob")
+        self.assertEqual(messages[2].content, "Talk tomorrow then")
+        self.assertFalse(messages[2].is_system_message)
+        self.assertFalse(messages[2].is_auto_response)
+    
+    def test_parse_auto_response_multiline_content(self):
+        """Test parsing auto response with multiline content"""
+        html_content = '''<B><FONT COLOR="#0000ff">Auto response from Bob<!-- (3:00:00 PM)--></B></FONT>: <FONT>Out for lunch
+Back in 1 hour</FONT><BR>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0].sender, "Bob")
+        self.assertEqual(messages[0].content, "Out for lunch Back in 1 hour")
+        self.assertTrue(messages[0].is_system_message)
+        self.assertTrue(messages[0].is_auto_response)
 
 
 class TestAIMParserFactory(unittest.TestCase):
