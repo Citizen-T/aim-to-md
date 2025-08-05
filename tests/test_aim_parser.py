@@ -265,6 +265,32 @@ Back in 1 hour</FONT><BR>'''
         self.assertEqual(len(messages), 1)
         self.assertEqual(messages[0].content, "regular message")
         self.assertFalse(messages[0].is_session_concluded)
+    
+    def test_parse_chronological_order_with_session_concluded(self):
+        """Test that session concluded messages appear in correct chronological position"""
+        html_content = '''<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Alice<SPAN STYLE="font-size: xx-small;"> (10:00:00 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>first message</FONT></SPAN><BR>
+<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Bob<SPAN STYLE="font-size: xx-small;"> (10:05:00 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>second message</FONT></SPAN><BR>
+<HR><B>Session concluded at 10:10:00 PM</B><HR>
+<SPAN STYLE="background-color: #ffffff;"><B><FONT COLOR="#0000ff">Alice<SPAN STYLE="font-size: xx-small;"> (10:15:00 PM)</SPAN></B></FONT><FONT COLOR="#0000ff">: </FONT><FONT>third message</FONT></SPAN><BR>
+<HR><B>Session concluded at 10:20:00 PM</B><HR></HTML>'''
+        
+        messages = self.parser.parse(html_content)
+        
+        self.assertEqual(len(messages), 5)
+        
+        # Verify chronological order
+        expected_messages = [
+            ("Alice", "first message", False),
+            ("Bob", "second message", False), 
+            ("System", "Session concluded at 10:10:00 PM", True),
+            ("Alice", "third message", False),
+            ("System", "Session concluded at 10:20:00 PM", True)
+        ]
+        
+        for i, (expected_sender, expected_content, expected_session_concluded) in enumerate(expected_messages):
+            self.assertEqual(messages[i].sender, expected_sender, f"Message {i} sender mismatch")
+            self.assertEqual(messages[i].content, expected_content, f"Message {i} content mismatch")
+            self.assertEqual(messages[i].is_session_concluded, expected_session_concluded, f"Message {i} session_concluded flag mismatch")
 
 
 class TestAIMParserFactory(unittest.TestCase):
