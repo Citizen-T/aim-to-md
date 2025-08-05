@@ -12,6 +12,7 @@ class Message:
     timestamp: str
     content: str
     is_system_message: bool = False
+    is_auto_response: bool = False
 
 
 class BaseAIMParser(ABC):
@@ -34,6 +35,25 @@ class BaseAIMParser(ABC):
             date_str = date_match.group(1)
             return datetime.strptime(date_str, '%Y-%m-%d')
         raise ValueError(f"Could not extract date from filename: {filename}")
+    
+    def _process_auto_response_message(self, sender: str, timestamp: str, content: str) -> Message:
+        """Process an auto response message and extract the original username"""
+        if sender.startswith('Auto response from '):
+            original_sender = sender[len('Auto response from '):]
+            return Message(
+                sender=original_sender,
+                timestamp=timestamp,
+                content=content,
+                is_system_message=True,
+                is_auto_response=True
+            )
+        return Message(
+            sender=sender,
+            timestamp=timestamp,
+            content=content,
+            is_system_message=False,
+            is_auto_response=False
+        )
 
 
 class CommentBasedParser(BaseAIMParser):
@@ -128,12 +148,7 @@ class CommentBasedParser(BaseAIMParser):
             full_content = re.sub(r'   +', '  ', full_content)
             full_content = full_content.strip()
             
-            messages.append(Message(
-                sender=sender,
-                timestamp=timestamp,
-                content=full_content,
-                is_system_message=False
-            ))
+            messages.append(self._process_auto_response_message(sender, timestamp, full_content))
 
 
 class SpanBasedParser(BaseAIMParser):
@@ -230,12 +245,7 @@ class SpanBasedParser(BaseAIMParser):
         content = self._extract_message_content(message_html)
         
         if content:
-            messages.append(Message(
-                sender=sender,
-                timestamp=timestamp,
-                content=content,
-                is_system_message=False
-            ))
+            messages.append(self._process_auto_response_message(sender, timestamp, content))
     
     def _extract_message_content(self, message_html: str) -> str:
         """Extract the actual message content from SPAN format"""

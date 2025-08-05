@@ -52,7 +52,17 @@ class MarkdownConverter:
             if message.is_system_message:
                 # Flush any pending group before system message
                 flush_group()
-                output.append(f"> [!NOTE]\n> {message.content}")
+                if message.is_auto_response:
+                    # Format auto response as QUOTE callout
+                    output.append(f"> [!QUOTE] Auto response from {message.sender} ({message.timestamp})")
+                    # Handle multiline content by prefixing each line with >
+                    content_lines = message.content.split('\n')
+                    for line in content_lines:
+                        escaped_line = self._escape_markdown(line)
+                        output.append(f"> {escaped_line}")
+                else:
+                    # Regular system message as NOTE callout
+                    output.append(f"> [!NOTE]\n> {message.content}")
                 output.append("")
                 previous_sender = None
                 previous_timestamp = None
