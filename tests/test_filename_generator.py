@@ -287,10 +287,10 @@ class TestFilenameGenerator(unittest.TestCase):
         # Should use fallback for short responses
         self.assertEqual(description, "Brief conversation between participants")
     
-    def test_generate_description_too_long(self):
-        """Test handling of very long LLM responses"""
-        # Setup mock response that's too long
-        long_text = "This is a very long description that exceeds the reasonable length limit for frontmatter descriptions and should be truncated to maintain readability and compatibility with markdown parsers and other tools that process frontmatter content." * 2
+    def test_generate_description_long_response(self):
+        """Test handling of long LLM responses without truncation"""
+        # Setup mock response that's long
+        long_text = "This is a very long description that demonstrates the AI's ability to generate comprehensive descriptions without artificial length limits. The conversation covers multiple topics including planning activities, discussing personal updates, and making future arrangements."
         mock_response = MagicMock()
         mock_response.text = long_text
         self.mock_model.generate_content.return_value = mock_response
@@ -302,10 +302,10 @@ class TestFilenameGenerator(unittest.TestCase):
         
         description = self.generator.generate_description(messages)
         
-        # Should be truncated to 300 characters or less
-        self.assertLessEqual(len(description), 300)
-        # Should end with a complete sentence if possible
-        self.assertTrue(description.endswith('.') or len(description) == 300)
+        # Should return the full description without truncation
+        self.assertEqual(description, long_text)
+        # Should be longer than the old 300 character limit
+        self.assertGreater(len(description), 200)
     
     def test_generate_description_message_sampling(self):
         """Test that description generation uses smart sampling for long conversations"""
