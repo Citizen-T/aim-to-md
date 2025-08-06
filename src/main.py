@@ -7,9 +7,10 @@ from typing import List, Tuple
 from src.aim_parser import AIMParser
 from src.markdown_converter import MarkdownConverter
 from src.filename_generator import FilenameGenerator
+from src.tag_evaluator import TagEvaluator
 
 
-def process_file(input_path: Path, output_path: Path, description: str = None) -> None:
+def process_file(input_path: Path, output_path: Path, description: str = None, custom_tags: List[str] = None) -> None:
     """Process a single AIM HTML file and convert it to Markdown."""
     parser = AIMParser()
     converter = MarkdownConverter()
@@ -31,8 +32,13 @@ def process_file(input_path: Path, output_path: Path, description: str = None) -
         except ValueError:
             date = None
         
+        # Prepare final tags (combine default aim tag with custom tags)
+        final_tags = ["aim"]
+        if custom_tags:
+            final_tags.extend(custom_tags)
+        
         # Convert to Markdown
-        markdown = converter.convert(messages, conversation_date=date, group_consecutive=True, description=description)
+        markdown = converter.convert(messages, conversation_date=date, group_consecutive=True, description=description, tags=final_tags)
         
         # Write the output
         with open(output_path, 'w', encoding='utf-8') as f:
@@ -46,8 +52,8 @@ def process_file(input_path: Path, output_path: Path, description: str = None) -
         raise
 
 
-def _generate_standardized_filename(input_file: Path) -> Tuple[Path, str]:
-    """Generate a standardized filename and description using LLM"""
+def _generate_standardized_filename(input_file: Path, tag_evaluator: TagEvaluator = None) -> Tuple[Path, str, List[str]]:
+    """Generate a standardized filename, description, and tags using LLM"""
     parser = AIMParser()
     filename_generator = FilenameGenerator()
     
@@ -67,7 +73,12 @@ def _generate_standardized_filename(input_file: Path) -> Tuple[Path, str]:
     standardized_name = filename_generator.generate_filename(messages, date)
     description = filename_generator.generate_description(messages)
     
-    return input_file.parent / f"{standardized_name}.md", description
+    # Evaluate custom tags if tag evaluator is provided
+    custom_tags = []
+    if tag_evaluator:
+        custom_tags = tag_evaluator.evaluate_tags(messages)
+    
+    return input_file.parent / f"{standardized_name}.md", description, custom_tags
 
 
 def main():
@@ -91,9 +102,39 @@ def main():
         help="Process directories recursively"
     )
     
+    parser.add_argument(
+        "-t", "--tags-config",
+        help="Path to YAML configuration file (default: looks for config.yaml in current directory)"
+    )
+    
     args = parser.parse_args()
     
     input_path = Path(args.input)
+    
+    # Initialize tag evaluator - check for config file
+    tag_evaluator = None
+    config_path = None
+    
+    if args.tags_config:
+        # User specified a custom config file
+        config_path = Path(args.tags_config)
+    else:
+        # Check for default config.yaml in current directory
+        default_config = Path("config.yaml")
+        if default_config.exists():
+            config_path = default_config
+    
+    if config_path:
+        if not config_path.exists():
+            print(f"Error: Configuration file '{config_path}' does not exist", file=sys.stderr)
+            sys.exit(1)
+        try:
+            tag_evaluator = TagEvaluator(config_path)
+            if tag_evaluator.tag_configs:
+                print(f"Loaded {len(tag_evaluator.tag_configs)} custom tag(s) from {config_path}")
+        except Exception as e:
+            print(f"Error loading configuration: {e}", file=sys.stderr)
+            sys.exit(1)
     
     if not input_path.exists():
         print(f"Error: Input path '{input_path}' does not exist", file=sys.stderr)
@@ -118,8 +159,9 @@ def main():
     
     # Process each file
     for input_file in files_to_process:
-        # Initialize description variable
+        # Initialize description and custom_tags variables
         description = None
+        custom_tags = None
         
         # Determine output path
         if args.output:
@@ -133,11 +175,20 @@ def main():
                 # Single file
                 output_file = output_path
         else:
-            # Generate standardized filename and description using LLM
-            output_file, description = _generate_standardized_filename(input_file)
+            # Generate standardized filename, description, and custom tags using LLM
+            output_file, description, custom_tags = _generate_standardized_filename(input_file, tag_evaluator)
+        
+        # If we have a tag evaluator but haven't evaluated tags yet (e.g., when using -o option)
+        if tag_evaluator and custom_tags is None:
+            # Need to parse the file to evaluate tags
+            aim_parser = AIMParser()
+            with open(input_file, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            messages = aim_parser.parse(html_content)
+            custom_tags = tag_evaluator.evaluate_tags(messages)
         
         try:
-            process_file(input_file, output_file, description)
+            process_file(input_file, output_file, description, custom_tags)
         except Exception:
             # Error already printed in process_file
             continue

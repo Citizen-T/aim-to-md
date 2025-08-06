@@ -1,6 +1,7 @@
 # Runtime dependencies
 google-generativeai>=0.3.0
 python-dotenv>=1.0.0
+PyYAML>=6.0.0
 
 # Development dependencies
 pytest>=8.0.0
