@@ -10,7 +10,7 @@ from src.filename_generator import FilenameGenerator
 from src.tag_evaluator import TagEvaluator
 
 
-def process_file(input_path: Path, output_path: Path, description: str = None, custom_tags: List[str] = None) -> None:
+def process_file(input_path: Path, output_path: Path, description: str = None, custom_tags: List[str] = None, participants: List[str] = None) -> None:
     """Process a single AIM HTML file and convert it to Markdown."""
     parser = AIMParser()
     converter = MarkdownConverter()
@@ -38,7 +38,7 @@ def process_file(input_path: Path, output_path: Path, description: str = None, c
             final_tags.extend(custom_tags)
         
         # Convert to Markdown
-        markdown = converter.convert(messages, conversation_date=date, group_consecutive=True, description=description, tags=final_tags)
+        markdown = converter.convert(messages, conversation_date=date, group_consecutive=True, description=description, tags=final_tags, participants=participants)
         
         # Write the output
         with open(output_path, 'w', encoding='utf-8') as f:
@@ -52,8 +52,8 @@ def process_file(input_path: Path, output_path: Path, description: str = None, c
         raise
 
 
-def _generate_standardized_filename(input_file: Path, tag_evaluator: TagEvaluator = None) -> Tuple[Path, str, List[str]]:
-    """Generate a standardized filename, description, and tags using LLM"""
+def _generate_standardized_filename(input_file: Path, tag_evaluator: TagEvaluator = None) -> Tuple[Path, str, List[str], List[str]]:
+    """Generate a standardized filename, description, tags, and participants using LLM"""
     parser = AIMParser()
     filename_generator = FilenameGenerator()
     
@@ -69,16 +69,32 @@ def _generate_standardized_filename(input_file: Path, tag_evaluator: TagEvaluato
     except ValueError:
         date = None
     
-    # Generate standardized filename and description using LLM
-    standardized_name = filename_generator.generate_filename(messages, date)
-    description = filename_generator.generate_description(messages)
+    # Extract participants from messages
+    participants_set = set()
+    for message in messages:
+        if not message.is_system_message and message.sender:
+            participants_set.add(message.sender)
     
-    # Evaluate custom tags if tag evaluator is provided
+    # Generate name mapping for human-readable names if tag evaluator is provided
+    name_mapping = None
+    if tag_evaluator:
+        name_mapping = tag_evaluator.get_human_readable_names(list(participants_set))
+    
+    # Generate standardized filename and description using LLM
+    standardized_name = filename_generator.generate_filename(messages, date, name_mapping)
+    description = filename_generator.generate_description(messages, name_mapping)
+    
+    # Evaluate custom tags and map participants if tag evaluator is provided
     custom_tags = []
+    mapped_participants = []
     if tag_evaluator:
         custom_tags = tag_evaluator.evaluate_tags(messages)
+        mapped_participants = tag_evaluator.map_participants(list(participants_set))
+    else:
+        # If no tag evaluator, fall back to raw AIM handles
+        mapped_participants = list(participants_set)
     
-    return input_file.parent / f"{standardized_name}.md", description, custom_tags
+    return input_file.parent / f"{standardized_name}.md", description, custom_tags, mapped_participants
 
 
 def main():
@@ -159,9 +175,10 @@ def main():
     
     # Process each file
     for input_file in files_to_process:
-        # Initialize description and custom_tags variables
+        # Initialize description, custom_tags, and participants variables
         description = None
         custom_tags = None
+        participants = None
         
         # Determine output path
         if args.output:
@@ -175,20 +192,30 @@ def main():
                 # Single file
                 output_file = output_path
         else:
-            # Generate standardized filename, description, and custom tags using LLM
-            output_file, description, custom_tags = _generate_standardized_filename(input_file, tag_evaluator)
+            # Generate standardized filename, description, custom tags, and participants using LLM
+            output_file, description, custom_tags, participants = _generate_standardized_filename(input_file, tag_evaluator)
         
         # If we have a tag evaluator but haven't evaluated tags yet (e.g., when using -o option)
-        if tag_evaluator and custom_tags is None:
-            # Need to parse the file to evaluate tags
+        if tag_evaluator and (custom_tags is None or participants is None):
+            # Need to parse the file to evaluate tags and participants
             aim_parser = AIMParser()
             with open(input_file, 'r', encoding='utf-8') as f:
                 html_content = f.read()
             messages = aim_parser.parse(html_content)
-            custom_tags = tag_evaluator.evaluate_tags(messages)
+            
+            if custom_tags is None:
+                custom_tags = tag_evaluator.evaluate_tags(messages)
+            
+            if participants is None:
+                # Extract participants and map them
+                participants_set = set()
+                for message in messages:
+                    if not message.is_system_message and message.sender:
+                        participants_set.add(message.sender)
+                participants = tag_evaluator.map_participants(list(participants_set))
         
         try:
-            process_file(input_file, output_file, description, custom_tags)
+            process_file(input_file, output_file, description, custom_tags, participants)
         except Exception:
             # Error already printed in process_file
             continue

@@ -13,7 +13,7 @@ class MarkdownConverter:
     
     def convert(self, messages: List[Message], conversation_date: Optional[datetime] = None, 
                 group_consecutive: bool = True, description: Optional[str] = None, 
-                tags: Optional[List[str]] = None) -> str:
+                tags: Optional[List[str]] = None, participants: Optional[List[str]] = None) -> str:
         if not messages:
             return ""
         
@@ -24,6 +24,13 @@ class MarkdownConverter:
             date_str = conversation_date.strftime("%Y-%m-%d")
             output.append("---")
             output.append(f"date: {date_str}")
+            
+            # Add participants if provided
+            if participants:
+                output.append("participants:")
+                for participant in participants:
+                    output.append(f"  - {participant}")
+            
             if description:
                 output.append(f"description: {description}")
             
