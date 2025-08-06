@@ -189,8 +189,8 @@ participants:
 ---
 date: 2025-08-05
 participants:
-  - [[Bob Smith]]
-  - [[Alice Sanders]]
+  - "[[Bob Smith]]"
+  - "[[Alice Sanders]]"
 description: In this conversation Bob and Alice discuss their weekend plans and upcoming project deadlines.
 tags:
   - aim
@@ -222,8 +222,8 @@ The converter automatically includes YAML frontmatter when a date can be extract
 ---
 date: 2004-05-18
 participants:
-  - [[Alice Sanders]]
-  - [[Bob Smith]]
+  - "[[Alice Sanders]]"
+  - "[[Bob Smith]]"
 description: In this conversation Alice and Bob catch up on recent events, discuss their weekend plans, and share updates about their work projects.
 tags:
   - aim

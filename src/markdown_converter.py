@@ -29,7 +29,7 @@ class MarkdownConverter:
             if participants:
                 output.append("participants:")
                 for participant in participants:
-                    output.append(f"  - {participant}")
+                    output.append(f"  - \"{participant}\"")
             
             if description:
                 output.append(f"description: {description}")
