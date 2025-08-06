@@ -293,8 +293,8 @@ participants:
             
             # Should contain participants in frontmatter
             self.assertIn("participants:", result)
-            self.assertIn("- [[Bob Smith]]", result)
-            self.assertIn("- [[Alice Sanders]]", result)
+            self.assertIn("- \"[[Bob Smith]]\"", result)
+            self.assertIn("- \"[[Alice Sanders]]\"", result)
             
             # Should contain human-readable names in description
             self.assertIn("Bob and Alice exchange", result)
