@@ -93,15 +93,9 @@ Generate only the description, nothing else:"""
             description = re.sub(r'^["\']|["\']$', '', description)  # Remove quotes
             description = description.replace('\n', ' ').strip()
             
-            # Ensure reasonable length (not too short or too long)
+            # Ensure reasonable minimum length
             if len(description) < 20:
                 return "Brief conversation between participants"
-            elif len(description) > 300:
-                description = description[:300].strip()
-                # Try to end at a complete sentence
-                last_period = description.rfind('.')
-                if last_period > 200:
-                    description = description[:last_period + 1]
                 
             return description if description else "General conversation between participants"
             
