@@ -144,7 +144,7 @@ tags:
 > How's it going?
 
 **Bob** (10:57:05 PM):
-> Hi there\\!
+> Hi there!
 
 **Alice** (11:00:22 PM):
 > Guess you fell asleep
@@ -212,7 +212,7 @@ tags:
         markdown = self.converter.convert(messages)
         
         expected = """> [!QUOTE] Auto response from Bob (3:15:45 PM)
-> \\*busy\\* with \\_work\\_\\!
+> \\*busy\\* with \\_work\\_!
 """
         self.assertEqual(markdown, expected)
     

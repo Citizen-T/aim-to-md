@@ -6,8 +6,8 @@ from src.aim_parser import Message
 
 class MarkdownConverter:
     def __init__(self):
-        # Characters that need to be escaped in Markdown
-        self.escape_chars = ['*', '_', '`', '[', ']', '(', ')', '#', '+', '-', '.', '!']
+        # Characters that need to be escaped in Markdown (minimal set for blockquotes)
+        self.escape_chars = ['*', '_', '`', '[', ']']
         # Grouping threshold in minutes
         self.group_threshold_minutes = 2
     
