@@ -307,27 +307,77 @@ class TestFilenameGenerator(unittest.TestCase):
         # Should end with a complete sentence if possible
         self.assertTrue(description.endswith('.') or len(description) == 300)
     
-    def test_generate_description_message_limit(self):
-        """Test that description generation limits messages to avoid token limits"""
+    def test_generate_description_message_sampling(self):
+        """Test that description generation uses smart sampling for long conversations"""
         # Setup mock response
         mock_response = MagicMock()
         mock_response.text = "Long conversation between Alice and Bob covering many topics."
         self.mock_model.generate_content.return_value = mock_response
         
-        # Create more than 30 messages
+        # Create more than 100 messages to trigger sampling
         messages = []
-        for i in range(35):
+        for i in range(120):
             messages.append(Message(sender="Alice" if i % 2 == 0 else "Bob", 
                                   timestamp="10:56:59 PM", 
                                   content=f"Message {i+1}"))
         
         description = self.generator.generate_description(messages)
         
-        # Verify the prompt only included first 30 messages
+        # Verify the prompt includes messages from different parts of conversation
         call_args = self.mock_model.generate_content.call_args[0][0]
-        self.assertIn("Message 30", call_args)
-        self.assertNotIn("Message 31", call_args)
+        
+        # Should include early messages
+        self.assertIn("Message 1", call_args)
+        
+        # Should include late messages  
+        self.assertIn("Message 120", call_args)
+        
+        # Should include conversation separator markers for sampled content
+        self.assertIn("... [conversation continues] ...", call_args)
+        self.assertIn("... [end of conversation] ...", call_args)
+        
         self.assertEqual(description, "Long conversation between Alice and Bob covering many topics.")
+    
+    def test_sample_conversation_content_small_conversation(self):
+        """Test that small conversations are not sampled"""
+        generator = FilenameGenerator()
+        
+        # Small conversation should use all messages
+        content = [f"Message {i}" for i in range(1, 21)]  # 20 messages
+        result = generator._sample_conversation_content(content, max_messages=50)
+        
+        # Should contain all messages
+        for i in range(1, 21):
+            self.assertIn(f"Message {i}", result)
+        
+        # Should not contain sampling markers
+        self.assertNotIn("... [conversation continues] ...", result)
+        self.assertNotIn("... [end of conversation] ...", result)
+    
+    def test_sample_conversation_content_large_conversation(self):
+        """Test that large conversations are intelligently sampled"""
+        generator = FilenameGenerator()
+        
+        # Large conversation that should be sampled
+        content = [f"Message {i}" for i in range(1, 201)]  # 200 messages
+        result = generator._sample_conversation_content(content, max_messages=50)
+        
+        # Should contain early messages
+        self.assertIn("Message 1", result)
+        self.assertIn("Message 10", result)
+        
+        # Should contain late messages
+        self.assertIn("Message 200", result)
+        self.assertIn("Message 191", result)
+        
+        # Should contain sampling markers
+        self.assertIn("... [conversation continues] ...", result)
+        self.assertIn("... [end of conversation] ...", result)
+        
+        # Should not exceed max_messages (plus separators)
+        lines = result.split('\n')
+        non_separator_lines = [line for line in lines if not line.startswith('... [')]
+        self.assertLessEqual(len(non_separator_lines), 50)
 
 
 if __name__ == '__main__':

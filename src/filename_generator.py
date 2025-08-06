@@ -54,24 +54,24 @@ class FilenameGenerator:
         if not regular_messages:
             return "Conversation with only system messages"
         
-        # Prepare conversation content for the LLM (similar to title generation)
+        # Prepare conversation content for the LLM
         conversation_content = []
         for message in regular_messages:
             conversation_content.append(f"{message.sender}: {message.content}")
         
-        # Limit content to avoid token limits (take first 30 messages for description)
-        if len(conversation_content) > 30:
-            conversation_content = conversation_content[:30]
+        # Use smart sampling to represent entire conversation while staying within reasonable limits
+        conversation_text = self._sample_conversation_content(conversation_content, max_messages=100)
         
-        conversation_text = "\n".join(conversation_content)
-        
-        prompt = f"""Based on this AIM conversation, generate a concise description (1-2 sentences) that summarizes the main topics, themes, and key events discussed. This description will be used by other LLMs to quickly understand whether the conversation is relevant to their search criteria.
+        prompt = f"""Based on this AIM conversation, generate a concise description (1-2 sentences) that summarizes the main topics, themes, and key events discussed throughout the ENTIRE conversation. This description will be used by other LLMs to quickly understand whether the conversation is relevant to their search criteria.
+
+IMPORTANT: Pay attention to the full conversation flow from beginning to end. If the conversation sample includes separator markers like "... [conversation continues] ..." or "... [end of conversation] ...", ensure you consider themes and topics from all parts of the conversation, not just the beginning.
 
 Focus on:
-- Main topics or subjects discussed
-- Key events mentioned
-- Overall themes or purposes of the conversation
-- Important decisions or conclusions reached
+- Main topics or subjects discussed throughout the conversation
+- Key events mentioned at any point
+- Overall themes or purposes that emerge across the full conversation
+- Important decisions or conclusions reached (especially near the end)
+- Evolution of topics from start to finish
 
 Conversation:
 {conversation_text}
@@ -125,13 +125,12 @@ Generate only the description, nothing else:"""
             if not message.is_system_message:
                 conversation_content.append(f"{message.sender}: {message.content}")
         
-        # Limit content to avoid token limits (take first 20 messages)
-        if len(conversation_content) > 20:
-            conversation_content = conversation_content[:20]
+        # Use smart sampling to represent entire conversation while staying within reasonable limits
+        conversation_text = self._sample_conversation_content(conversation_content, max_messages=100)
         
-        conversation_text = "\n".join(conversation_content)
-        
-        prompt = f"""Based on this AIM conversation, generate a concise, descriptive title (3-6 words) that captures the main topic or theme of the conversation. The title should be suitable for a filename.
+        prompt = f"""Based on this AIM conversation, generate a concise, descriptive title (3-6 words) that captures the main topic or theme discussed throughout the ENTIRE conversation. The title should be suitable for a filename.
+
+IMPORTANT: Consider the full conversation flow from beginning to end. If the conversation sample includes separator markers like "... [conversation continues] ..." or "... [end of conversation] ...", make sure your title reflects the overall theme or most significant topic discussed across all parts of the conversation, not just the opening messages.
 
 Conversation:
 {conversation_text}
@@ -161,6 +160,60 @@ Generate only the title, nothing else:"""
             
         except Exception as e:
             raise RuntimeError(f"Failed to generate title using Gemini API: {e}")
+    
+    def _sample_conversation_content(self, conversation_content: List[str], max_messages: int) -> str:
+        """
+        Intelligently sample conversation content to represent the entire conversation.
+        Uses stratified sampling to ensure coverage across the full conversation.
+        """
+        if len(conversation_content) <= max_messages:
+            # If conversation is short enough, use all messages
+            return "\n".join(conversation_content)
+        
+        # For longer conversations, use stratified sampling
+        # Divide conversation into segments and sample from each
+        total_messages = len(conversation_content)
+        
+        # Always include first few messages (conversation start)
+        start_count = min(10, max_messages // 4)
+        sampled_messages = conversation_content[:start_count]
+        remaining_quota = max_messages - start_count
+        
+        # Always include last few messages (conversation end)
+        end_count = min(10, remaining_quota // 3)
+        sampled_messages.extend(conversation_content[-end_count:])
+        remaining_quota -= end_count
+        
+        # Sample from the middle portion
+        middle_start = start_count
+        middle_end = total_messages - end_count
+        
+        if middle_end > middle_start and remaining_quota > 0:
+            middle_messages = conversation_content[middle_start:middle_end]
+            
+            if len(middle_messages) <= remaining_quota:
+                # Include all middle messages if they fit
+                sampled_messages[start_count:start_count] = middle_messages
+            else:
+                # Evenly sample from middle portion
+                step = len(middle_messages) / remaining_quota
+                indices = [int(i * step) for i in range(remaining_quota)]
+                middle_sampled = [middle_messages[i] for i in indices]
+                sampled_messages[start_count:start_count] = middle_sampled
+        
+        # Add separator comments to show where content was sampled from
+        result = []
+        result.extend(sampled_messages[:start_count])
+        
+        if remaining_quota > 0 and middle_end > middle_start:
+            result.append("... [conversation continues] ...")
+            result.extend(sampled_messages[start_count:-end_count])
+        
+        if end_count > 0:
+            result.append("... [end of conversation] ...")
+            result.extend(sampled_messages[-end_count:])
+        
+        return "\n".join(result)
     
     def _sanitize_title(self, title: str) -> str:
         """Sanitize title for filename compatibility"""
