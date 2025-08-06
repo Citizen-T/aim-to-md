@@ -15,6 +15,7 @@ A Python utility to convert old AOL Instant Messenger (AIM) conversation logs fr
 - **AI-powered intelligent filename generation** using Google's Gemini AI
 - Generates descriptive filenames in standardized format: `YYYY-MM-DD Title [participants]`
 - **YAML frontmatter support** with AI-generated descriptions and automatic tagging for Obsidian and other markdown tools
+- **Configurable custom tagging system** - define your own tags with descriptions and let AI automatically apply them to conversations
 
 ## Installation
 
@@ -92,6 +93,62 @@ Process directories recursively:
 ```bash
 python -m src.main "path/to/aim-logs/" -r
 ```
+
+### Custom Tagging
+
+The tool automatically looks for a `config.yaml` file in your current directory. If found, it will use your custom tag configurations to automatically categorize conversations:
+
+```bash
+python -m src.main "conversation.htm"
+```
+
+You can also specify a custom configuration file location:
+
+```bash
+python -m src.main "conversation.htm" -t "path/to/custom-config.yaml"
+```
+
+This will apply your custom tags in addition to the default `aim` tag based on conversation content.
+
+## Custom Tag Configuration
+
+You can define custom tags to automatically categorize your conversations based on their content. Create a `config.yaml` file in your working directory (or specify a custom path with `-t`) that defines tag names and descriptions:
+
+```yaml
+tags:
+  - name: homework-help
+    description: >
+      This conversation contains a discussion of homework where one of the participants is assisting the other
+      in completing an assignment.
+  - name: sports
+    description: >
+      This conversation contains a discussion of sports (e.g. baseball, basketball, football, etc.) whether
+      professional or otherwise.
+  - name: gaming
+    description: >
+      This conversation contains discussions about video games, gaming platforms, or playing games together.
+```
+
+When you run the converter with a `config.yaml` file present (or specify a custom config with `-t`), the AI will analyze each conversation and automatically apply matching tags. For example, a conversation that contains both homework help and sports discussion would receive both tags:
+
+```markdown
+---
+date: 2025-08-05
+description: In this chat, Alice helps Bob work through some chemistry homework and then the two discuss the upcoming homecoming football game.
+tags:
+  - aim
+  - homework-help
+  - sports
+---
+```
+
+**Benefits:**
+- **Automatic categorization**: Let AI analyze and categorize your conversations
+- **Consistent tagging**: Standardize how conversations are tagged across your collection
+- **Enhanced searchability**: Use tags to quickly find conversations about specific topics
+- **Obsidian integration**: Tags work seamlessly with Obsidian's tag system for organization and filtering
+
+You can create your own configuration file with any tags that make sense for your conversation collection.
 
 ### YAML Frontmatter Support
 
@@ -193,13 +250,18 @@ aim-to-md/
 │   ├── __init__.py
 │   ├── aim_parser.py      # HTML parsing logic
 │   ├── markdown_converter.py  # Markdown conversion logic
+│   ├── filename_generator.py  # AI-powered filename and description generation
+│   ├── tag_evaluator.py   # Custom tag evaluation system
 │   └── main.py            # CLI application
 ├── tests/
 │   ├── fixtures/
 │   │   └── sample-conversation.htm  # Sample AIM conversation for testing
 │   ├── test_aim_parser.py
 │   ├── test_markdown_converter.py
-│   └── test_integration.py
+│   ├── test_filename_generator.py
+│   ├── test_tag_evaluator.py
+│   ├── test_integration.py
+│   └── test_integration_tagging.py
 ├── aim2md.py              # Entry point script
 └── README.md
 ```
