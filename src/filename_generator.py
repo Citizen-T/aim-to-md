@@ -1,7 +1,7 @@
 import os
 import re
 from datetime import datetime
-from typing import List, Set
+from typing import List, Set, Dict
 from pathlib import Path
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -24,7 +24,7 @@ class FilenameGenerator:
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
     
-    def generate_filename(self, messages: List[Message], conversation_date: datetime = None) -> str:
+    def generate_filename(self, messages: List[Message], conversation_date: datetime = None, name_mapping: Dict[str, str] = None) -> str:
         """Generate a standardized filename in format: YYYY-MM-DD Title [user1, user2]"""
         # Get date
         if conversation_date:
@@ -37,14 +37,14 @@ class FilenameGenerator:
         participants_str = f"[{', '.join(sorted(participants))}]"
         
         # Generate title using Gemini
-        title = self._generate_title_with_llm(messages)
+        title = self._generate_title_with_llm(messages, name_mapping)
         
         # Sanitize the title for filename use
         title = self._sanitize_title(title)
         
         return f"{date_str} {title} {participants_str}"
     
-    def generate_description(self, messages: List[Message]) -> str:
+    def generate_description(self, messages: List[Message], name_mapping: Dict[str, str] = None) -> str:
         """Generate a conversation description using Gemini API"""
         if not messages:
             return "Empty conversation"
@@ -57,7 +57,9 @@ class FilenameGenerator:
         # Prepare conversation content for the LLM
         conversation_content = []
         for message in regular_messages:
-            conversation_content.append(f"{message.sender}: {message.content}")
+            # Use human-readable name if mapping is provided, otherwise use original sender
+            display_name = name_mapping.get(message.sender, message.sender) if name_mapping else message.sender
+            conversation_content.append(f"{display_name}: {message.content}")
         
         # Use smart sampling to represent entire conversation while staying within reasonable limits
         conversation_text = self._sample_conversation_content(conversation_content, max_messages=100)
@@ -114,7 +116,7 @@ Generate only the description, nothing else:"""
                 participants.add(message.sender)
         return participants
     
-    def _generate_title_with_llm(self, messages: List[Message]) -> str:
+    def _generate_title_with_llm(self, messages: List[Message], name_mapping: Dict[str, str] = None) -> str:
         """Generate a descriptive title using Gemini API"""
         if not messages:
             return "Conversation"
@@ -123,7 +125,9 @@ Generate only the description, nothing else:"""
         conversation_content = []
         for message in messages:
             if not message.is_system_message:
-                conversation_content.append(f"{message.sender}: {message.content}")
+                # Use human-readable name if mapping is provided, otherwise use original sender
+                display_name = name_mapping.get(message.sender, message.sender) if name_mapping else message.sender
+                conversation_content.append(f"{display_name}: {message.content}")
         
         # Use smart sampling to represent entire conversation while staying within reasonable limits
         conversation_text = self._sample_conversation_content(conversation_content, max_messages=100)

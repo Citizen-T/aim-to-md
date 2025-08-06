@@ -1,0 +1,30 @@
+# Example configuration file for aim-to-md
+# Copy this to config.yaml in your working directory and customize
+
+tags:
+  - name: homework-help
+    description: >
+      This conversation contains a discussion of homework where one of the participants is assisting the other
+      in completing an assignment.
+  - name: sports
+    description: >
+      This conversation contains a discussion of sports (e.g. baseball, basketball, football, etc.) whether
+      professional or otherwise.
+  - name: gaming
+    description: >
+      This conversation contains discussions about video games, gaming platforms, or playing games together.
+  - name: travel
+    description: >
+      This conversation contains discussions of travel, vacation, exotic locations, or hotels. The participants
+      discuss going away together to somewhere other than their respective homes.
+
+participants:
+  - name: Bob
+    aim: bob123
+    md: "[[Bob Smith]]"
+  - name: Alice
+    aim: alice456
+    md: "[[Alice Sanders]]"
+  - name: Charlie
+    aim: charlie789
+    md: "[[Charlie Brown]]"

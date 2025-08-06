@@ -150,14 +150,80 @@ tags:
 
 You can create your own configuration file with any tags that make sense for your conversation collection.
 
-### YAML Frontmatter Support
+## Participant Mapping
 
-The converter automatically includes YAML frontmatter when a date can be extracted from the filename. The frontmatter includes a `tags` property with the default `aim` tag, and when using intelligent filename generation (no `-o` option specified), it also includes an AI-generated description. This is particularly useful for Obsidian and other markdown tools that support frontmatter:
+In addition to custom tags, you can configure participant mappings to link conversations to specific people in your note-taking system. This creates markdown links in the frontmatter and uses human-readable names in AI-generated descriptions.
 
-**With intelligent filename generation (default behavior):**
+### Configuration
+
+Add a `participants` section to your `config.yaml` file:
+
+```yaml
+tags:
+  - name: homework-help
+    description: This conversation contains homework discussion
+  - name: gaming
+    description: This conversation contains discussions about video games
+
+participants:
+  - name: Bob
+    aim: bob123
+    md: "[[Bob Smith]]"
+  - name: Alice
+    aim: alice456
+    md: "[[Alice Sanders]]" 
+  - name: Charlie
+    aim: charlie789
+    md: "[[Charlie Brown]]"
+```
+
+**Configuration Fields:**
+- `name`: Human-readable short name (first name or nickname)
+- `aim`: The exact AIM username/handle as it appears in conversation logs
+- `md`: Markdown link format for your note-taking system (typically `[[Full Name]]`)
+
+### Benefits
+
+**Markdown Links in Frontmatter:**
+```markdown
+---
+date: 2025-08-05
+participants:
+  - [[Bob Smith]]
+  - [[Alice Sanders]]
+description: In this conversation Bob and Alice discuss their weekend plans and upcoming project deadlines.
+tags:
+  - aim
+  - homework-help
+---
+```
+
+**Human-Readable AI Descriptions:**
+Instead of: _"In this conversation bob123 asks alice456 for help with homework"_  
+You get: _"In this conversation Bob asks Alice for help with homework"_
+
+**Automatic Fallback:**
+If a participant isn't configured, the tool automatically falls back to using their AIM handle, ensuring no conversation data is lost.
+
+### Obsidian Integration
+
+This feature works seamlessly with Obsidian's linking system:
+- `[[Bob Smith]]` creates automatic links to person notes
+- Use Obsidian's graph view to visualize conversation networks
+- Filter conversations by participant using the frontmatter
+- Build comprehensive personal knowledge bases with conversation history
+
+## YAML Frontmatter Support
+
+The converter automatically includes YAML frontmatter when a date can be extracted from the filename. The frontmatter includes a `tags` property with the default `aim` tag, and when using intelligent filename generation (no `-o` option specified), it also includes an AI-generated description and participant information. This is particularly useful for Obsidian and other markdown tools that support frontmatter:
+
+**With intelligent filename generation and participant mapping (default behavior):**
 ```markdown
 ---
 date: 2004-05-18
+participants:
+  - [[Alice Sanders]]
+  - [[Bob Smith]]
 description: In this conversation Alice and Bob catch up on recent events, discuss their weekend plans, and share updates about their work projects.
 tags:
   - aim
@@ -192,8 +258,14 @@ Files without extractable dates will not include frontmatter:
 
 The AI-generated description summarizes the main topics and themes of the conversation, making it easier for other LLMs and tools to understand the content without reading the entire conversation. This feature only activates when using intelligent filename generation, which requires a `GEMINI_API_KEY`.
 
-**Tags System:**
-All generated markdown files include a `tags` property in the frontmatter with the default `aim` tag. This provides consistent categorization for AIM conversations when imported into note-taking systems like Obsidian. The tags use standard YAML array format compatible with Obsidian and other markdown tools and can be used for filtering, searching, and organizing your converted conversations.
+**Frontmatter Properties:**
+All generated markdown files include comprehensive frontmatter with:
+- `date`: Conversation date extracted from filename
+- `participants`: List of participant links (when configured) or AIM handles  
+- `description`: AI-generated conversation summary using human-readable names
+- `tags`: Default `aim` tag plus any custom tags that match the conversation content
+
+This provides rich metadata for note-taking systems like Obsidian, enabling powerful organization, linking, and search capabilities across your conversation collection.
 
 ## Example Output
 

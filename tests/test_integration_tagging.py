@@ -169,12 +169,15 @@ tags:
             self.mock_model.generate_content.side_effect = mock_responses
             
             # Test filename generation with tag evaluator
-            output_path, description, custom_tags = _generate_standardized_filename(input_path, tag_evaluator)
+            output_path, description, custom_tags, participants = _generate_standardized_filename(input_path, tag_evaluator)
             
             # Should return expected values
             self.assertIn("Basketball game discussion", str(output_path))
             self.assertIn("Alice and Bob discuss", description)
             self.assertEqual(custom_tags, ["sports"])
+            # Should include all participants from the conversation
+            self.assertIn("Alice", participants)
+            self.assertIn("Bob", participants)
             
         finally:
             input_path.unlink()
@@ -202,12 +205,15 @@ tags:
             self.mock_model.generate_content.side_effect = mock_responses
             
             # Test filename generation without tag evaluator
-            output_path, description, custom_tags = _generate_standardized_filename(input_path)
+            output_path, description, custom_tags, participants = _generate_standardized_filename(input_path)
             
             # Should return expected values
             self.assertIn("Friendly greeting conversation", str(output_path))
             self.assertIn("Alice and Bob exchange", description)
             self.assertEqual(custom_tags, [])  # No custom tags
+            # Should still include participants (as fallback to AIM handles)
+            self.assertIn("Alice", participants)
+            self.assertIn("Bob", participants)
             
         finally:
             input_path.unlink()
@@ -260,7 +266,7 @@ tags:
             self.mock_model.generate_content.side_effect = mock_responses
             
             # Generate filename and tags
-            output_path, description, custom_tags = _generate_standardized_filename(input_path, tag_evaluator)
+            output_path, description, custom_tags, participants = _generate_standardized_filename(input_path, tag_evaluator)
             
             # Create temporary output file
             output_file = tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False)

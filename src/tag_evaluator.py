@@ -18,6 +18,18 @@ class TagConfig:
         return f"TagConfig(name='{self.name}', description='{self.description}')"
 
 
+class ParticipantConfig:
+    """Represents a single participant configuration."""
+    
+    def __init__(self, name: str, aim: str, md: str):
+        self.name = name
+        self.aim = aim
+        self.md = md
+    
+    def __repr__(self):
+        return f"ParticipantConfig(name='{self.name}', aim='{self.aim}', md='{self.md}')"
+
+
 class TagEvaluator:
     """Evaluates which custom tags should be applied to conversations using LLM."""
     
@@ -36,8 +48,9 @@ class TagEvaluator:
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
         
-        # Load tag configurations
+        # Load tag configurations and participant configurations
         self.tag_configs = []
+        self.participant_configs = []
         
         # Determine config file to use
         config_to_load = None
@@ -50,32 +63,47 @@ class TagEvaluator:
                 config_to_load = default_config
         
         if config_to_load:
-            self.tag_configs = self._load_config(config_to_load)
+            self.tag_configs, self.participant_configs = self._load_config(config_to_load)
     
-    def _load_config(self, config_file_path: Path) -> List[TagConfig]:
-        """Load tag configurations from YAML file."""
+    def _load_config(self, config_file_path: Path) -> tuple[List[TagConfig], List[ParticipantConfig]]:
+        """Load tag and participant configurations from YAML file."""
         try:
             with open(config_file_path, 'r', encoding='utf-8') as f:
                 config_data = yaml.safe_load(f)
             
-            if not config_data or 'tags' not in config_data:
-                return []
+            if not config_data:
+                return [], []
             
+            # Load tag configurations
             tag_configs = []
-            for tag_data in config_data['tags']:
-                if 'name' in tag_data and 'description' in tag_data:
-                    tag_configs.append(TagConfig(
-                        name=tag_data['name'],
-                        description=tag_data['description'].strip()
-                    ))
-                else:
-                    print(f"Warning: Skipping invalid tag configuration: {tag_data}")
+            if 'tags' in config_data:
+                for tag_data in config_data['tags']:
+                    if 'name' in tag_data and 'description' in tag_data:
+                        tag_configs.append(TagConfig(
+                            name=tag_data['name'],
+                            description=tag_data['description'].strip()
+                        ))
+                    else:
+                        print(f"Warning: Skipping invalid tag configuration: {tag_data}")
             
-            return tag_configs
+            # Load participant configurations
+            participant_configs = []
+            if 'participants' in config_data:
+                for participant_data in config_data['participants']:
+                    if 'name' in participant_data and 'aim' in participant_data and 'md' in participant_data:
+                        participant_configs.append(ParticipantConfig(
+                            name=participant_data['name'],
+                            aim=participant_data['aim'],
+                            md=participant_data['md']
+                        ))
+                    else:
+                        print(f"Warning: Skipping invalid participant configuration: {participant_data}")
+            
+            return tag_configs, participant_configs
             
         except (yaml.YAMLError, IOError) as e:
-            print(f"Warning: Could not load tag configuration from {config_file_path}: {e}")
-            return []
+            print(f"Warning: Could not load configuration from {config_file_path}: {e}")
+            return [], []
     
     def evaluate_tags(self, messages: List[Message]) -> List[str]:
         """
@@ -198,3 +226,61 @@ Matching tag names:"""
             result.extend(sampled_messages[-end_count:])
         
         return "\n".join(result)
+    
+    def map_participants(self, aim_handles: List[str]) -> List[str]:
+        """
+        Map AIM handles to markdown participant links.
+        
+        Args:
+            aim_handles: List of AIM username handles
+            
+        Returns:
+            List of markdown links for participants, falling back to AIM handle if no mapping found
+        """
+        mapped_participants = []
+        
+        for handle in aim_handles:
+            # Find matching participant config
+            participant_config = None
+            for config in self.participant_configs:
+                if config.aim == handle:
+                    participant_config = config
+                    break
+            
+            if participant_config:
+                # Use markdown link from config
+                mapped_participants.append(participant_config.md)
+            else:
+                # Fall back to AIM handle
+                mapped_participants.append(handle)
+        
+        return mapped_participants
+    
+    def get_human_readable_names(self, aim_handles: List[str]) -> Dict[str, str]:
+        """
+        Get mapping from AIM handles to human-readable names.
+        
+        Args:
+            aim_handles: List of AIM username handles
+            
+        Returns:
+            Dictionary mapping AIM handle to human-readable name (or handle if no mapping)
+        """
+        name_mapping = {}
+        
+        for handle in aim_handles:
+            # Find matching participant config
+            participant_config = None
+            for config in self.participant_configs:
+                if config.aim == handle:
+                    participant_config = config
+                    break
+            
+            if participant_config:
+                # Use human-readable name from config
+                name_mapping[handle] = participant_config.name
+            else:
+                # Fall back to AIM handle
+                name_mapping[handle] = handle
+        
+        return name_mapping
